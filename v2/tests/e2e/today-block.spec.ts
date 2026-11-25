@@ -167,5 +167,10 @@ test('with nothing due the block says so', async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 800 });
   await signIn(page, me.email, '/my-day');
   await hydrated(page);
-  await expect(page.locator('[data-today-block]')).toContainText('Nothing due today');
+  const block = page.locator('[data-today-block]');
+  await expect(block, 'by kind, as it opens').toContainText('Nothing due today');
+  // Landing 53: and in its other view, the four boxes
+  await block.locator('[data-rest-view-option="priority"]').click();
+  await expect(block).toHaveAttribute('data-rest-view', 'priority');
+  await expect(block, 'by priority').toContainText('Nothing due today');
 });
