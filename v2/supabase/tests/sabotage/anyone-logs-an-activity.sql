@@ -7,7 +7,8 @@ do $$
 declare
   d text := pg_catalog.pg_get_functiondef(
     'partner.activity_log(uuid, text, text, date, text, text, date, uuid[], text, text, boolean)'::regprocedure);
-  cut text := E'    if not core.may_write(e.table_name, p_partner) then\n      perform partner.side_writable(p_partner, null);\n    end if;\n';
+  -- Landing 55: the check also lets Own on the organisation's page through; the whole of it is taken out
+  cut text := E'    if not core.may_write(e.table_name, p_partner) and partner.level_of(me, p_partner, null) < ''own'' then\n      perform partner.side_writable(p_partner, null);\n    end if;\n';
 begin
   if pg_catalog.strpos(d, cut) = 0 then
     raise exception 'the write check is not where this sabotage expects it';

@@ -6,6 +6,11 @@
 select set_config('t.admin', test.person('Test Admin', 'admin')::text, true);
 select set_config('t.head', test.person('Test Head', 'head')::text, true);
 select set_config('t.am1', test.person('Test Account Manager', 'member')::text, true);
+-- Landing 55: a team member starts at Own on the organisation pages. What this test pins is unchanged, so its
+-- member is given Full there by a person's own setting — what the role gave when the test was written.
+insert into core.person_page_level (person_id, page_key, level, reason)
+values (current_setting('t.am1')::uuid, 'clients', 'full', 'made up: Full on Partners'),
+       (current_setting('t.am1')::uuid, 'suppliers_partners', 'full', 'made up: Full on Suppliers & partners');
 select test.as_person(current_setting('t.admin')::uuid);
 select api.identifier_block_add('email', 'domain', 'staff.example.test', 'made up: our own staff');
 select api.identifier_block_add('vat', 'exact', '300000000000013', 'made up: the test VAT');

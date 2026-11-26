@@ -17,7 +17,8 @@ export default defineModule({
       icon: 'building-2',
       nav: { group: 'main', order: 30, tier: 'work' },
       built: true,
-      defaults: { admin: 'full', head: 'full', manager: 'full', member: 'full', viewer: 'view' },
+      // Landing 55: a team member starts at Own — they change the organisations whose side they own (the design of 22 Nov)
+      defaults: { admin: 'full', head: 'full', manager: 'full', member: 'own', viewer: 'view' },
     },
     {
       key: 'suppliers_partners',
@@ -26,7 +27,7 @@ export default defineModule({
       icon: 'handshake',
       nav: { group: 'main', order: 31, tier: 'work', tabOf: 'clients' },
       built: true,
-      defaults: { admin: 'full', head: 'full', manager: 'full', member: 'full', viewer: 'view' },
+      defaults: { admin: 'full', head: 'full', manager: 'full', member: 'own', viewer: 'view' },
     },
     {
       key: 'settings.partners',

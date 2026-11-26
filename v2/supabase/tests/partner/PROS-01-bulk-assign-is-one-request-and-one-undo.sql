@@ -6,6 +6,11 @@
 select set_config('t.manager', test.person('Test Manager', 'manager')::text, true);
 select set_config('t.am1', test.person('Test Account Manager', 'member')::text, true);
 select set_config('t.am2', test.person('Test Second Manager', 'member')::text, true);
+-- Landing 55: a team member starts at Own on the organisation pages. What this test pins is unchanged, so its
+-- member is given Full there by a person's own setting — what the role gave when the test was written.
+insert into core.person_page_level (person_id, page_key, level, reason)
+values (current_setting('t.am1')::uuid, 'clients', 'full', 'made up: Full on Partners'),
+       (current_setting('t.am1')::uuid, 'suppliers_partners', 'full', 'made up: Full on Suppliers & partners');
 select set_config('t.high', (select id::text from work.priority where key = 'high'), true);
 
 select test.as_person(current_setting('t.manager')::uuid);
@@ -63,4 +68,4 @@ select test.eq((select array_agg(x) from partner.owners(current_setting('t.p1'):
 select test.as_person(current_setting('t.am2')::uuid);
 select test.raises(format('select api.partner_bulk_assign(%L, %L, %L, %L)', array[current_setting('t.p1')],
   'client', current_setting('t.am1'), current_setting('t.high')), '42501',
-  'but a member who no longer owns it cannot assign it', 'access.needs_capability');
+  'but a member who no longer owns it cannot assign it', 'access.needs_level'); -- Landing 55: it is no longer theirs to change

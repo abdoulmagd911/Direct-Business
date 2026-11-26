@@ -70,6 +70,9 @@ select set_config('t.am2', test.person('Test Second Member', 'member')::text, tr
 select test.as_owner();
 insert into core.person_page_level (person_id, page_key, level, reason)
 values (current_setting('t.am2')::uuid, 'activity', 'view', 'made up: may open Activity');
+-- Landing 55: a team member changes a colleague's organisation only with the extra "Edit someone else's work"
+insert into core.person_capability (person_id, capability_key, granted, reason)
+values (current_setting('t.am2')::uuid, 'records.edit_others', true, 'made up: covers for a colleague');
 select test.as_person(current_setting('t.am2')::uuid);
 select set_config('t.d', api.contact_save(current_setting('t.pid')::uuid, null, '{"name_en": "Made Up Contact D",
   "name_ar": "جهة اتصال متخيلة"}') ->> 'id', true);
