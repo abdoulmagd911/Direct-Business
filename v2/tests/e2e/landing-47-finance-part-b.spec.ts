@@ -360,7 +360,10 @@ test('5 · an expense file: a repeated line counts once, a tax invoice number is
   await page.setViewportSize({ width: 1440, height: 900 });
   const { call, admin } = await signedInAdmin(page);
   const org = await seedOrg(call, 'Expense File');
-  const txn = rowNo();
+  // the number is random; one that happens to carry the figures checked below ("150", "250") would answer for them
+  // (CI on Landing 56: …822508 read as the file's own sum), so such a number is drawn again
+  let txn = rowNo();
+  while (/150|250/.test(txn)) txn = rowNo();
   await seedImported(org.id, admin.id, '1964-02-10', [{ number: txn, revenue: 1000, cost: null }]);
   await page.goto('/finance?period=custom&from=1964-02-01&to=1964-02-29');
   await hydrated(page);

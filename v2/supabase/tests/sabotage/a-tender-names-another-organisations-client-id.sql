@@ -6,7 +6,7 @@ create or replace function finance.tender_client_id_set(p_tender uuid, p_identif
 language plpgsql security definer set search_path = ''
 as $$
 declare
-  me uuid := authz.require('finance', 'full');
+  me uuid := authz.require('finance', 'own');
   t pipeline.tender;
   d partner.identifier;
   req uuid;
@@ -15,6 +15,8 @@ begin
   if t.id is null then
     raise exception using errcode = 'P0002', message = 'common.not_found';
   end if;
+  -- Landing 56: whose client the tender is, is still asked — the sabotage is the check below it
+  perform finance.require_own_partner(t.partner_id);
   if p_identifier is not null then
     select * into d from partner.identifier x where x.id = p_identifier and x.deleted_at is null;
     if d.id is null or d.kind <> 'payments_client_id' or d.subkind is distinct from 'tender' then

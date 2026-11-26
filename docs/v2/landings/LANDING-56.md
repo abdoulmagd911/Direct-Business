@@ -119,3 +119,18 @@ the design's Member in full: their own organisations, and their own clients' Fin
   5. As the admin: set the member's "Import files on Finance" to Allowed (with a reason) → as the member, the import
      section is on Finance. Set it back to "As their role".
   6. Finance → Year to date: Revenue, Cost and Profit are what they were before the deploy.
+
+## CI run on the first push — two red jobs, and their fixes (second and third commits)
+
+- **The browser suite: 583 passed, 4 failed.** Three older tests pinned a team member at Full on Finance and now
+  follow the new level: `finance-overview.spec.ts` (a member reads the month and has New invoice, and no Close
+  month), `landing-34-test-round.spec.ts` (each member adds an invoice for a client that is theirs), and the speed
+  gate of `landing-47-finance-part-b.spec.ts` (a deal type on a row under no organisation is refused to a member too).
+  The fourth is **not this landing's**: test 5 of the same file draws a random row number and then checks the
+  preview does not contain "250" — the number drawn in CI ended …822508. Its number is now drawn again when it
+  carries "150" or "250". The whole suite was then run on the builder's machine: the four pass, with the rest.
+- **The database sabotage job: 644 plants, 2 not red for their own reason.** `levels-ignore-overrides` (ACC-01)
+  stayed green: the test's person-level on Finance was Own, which is now what the role gives — it is View now, a
+  level the role does not give, so the override is again what the test proves is read.
+  `a-tender-names-another-organisations-client-id` (TND-01) pasted the door's old text, which asked for Full and so
+  refused the test's team member one line early; the plant carries the door's new lines and breaks only its own.
