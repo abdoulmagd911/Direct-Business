@@ -12,6 +12,10 @@ select set_config('t.sup', test.person('Test Supplier Desk', 'manager')::text, t
 insert into core.person_page_level (person_id, page_key, level, reason)
 values (current_setting('t.sup')::uuid, 'clients', 'none', 'made up: suppliers only'),
        (current_setting('t.desk')::uuid, 'suppliers_partners', 'none', 'made up: clients only');
+-- Landing 55: a team member starts at Own on the organisation pages. What this test pins is unchanged, so its
+-- member is given Full there by a person's own setting — what the role gave when the test was written.
+insert into core.person_page_level (person_id, page_key, level, reason)
+values (current_setting('t.desk')::uuid, 'clients', 'full', 'made up: Full on Partners');
 
 select test.as_person(current_setting('t.head')::uuid);
 select set_config('t.p', api.partner_create(jsonb_build_object('trade_name_en', 'Made Up Both Sides Co',
@@ -67,10 +71,11 @@ select test.raises(format('select api.file_review_set(%L, null, 2)', current_set
 
 select test.as_person(current_setting('t.head')::uuid);
 select api.partner_side_off(current_setting('t.p')::uuid, 'supplier_partner', null, 'made up: no longer supplies');
-select test.as_person(current_setting('t.am1')::uuid);
+-- Landing 55: asked by the head, who may write either side — the Client side's owner is refused the other side first
 select test.raises(format('select api.file_begin(%L, %L, %L, %L, %L, %s, %L, null, %L)', 'partner', current_setting('t.p'),
   'rate_sheet', 'attachment', 'late.pdf', 1000, 'application/pdf', 'supplier_partner'), 'P0001',
   'a file goes on a side only while it is on', 'partner.side_not_on');
+select test.as_person(current_setting('t.am1')::uuid);
 
 select test.as_owner();
 select test.eq((select count(*)::int from notify.notification where kind = 'alert_file_review'), 0, 'no alert before the day');

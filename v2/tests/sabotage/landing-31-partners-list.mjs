@@ -447,7 +447,7 @@ export const sabotages = [
     edits: [
       {
         file: LIST,
-        find: '              trulyEmpty ? (\n                full ? (',
+        find: '              trulyEmpty ? (\n                mayAdd ? (',
         replace: '              trulyEmpty ? (\n                !!me ? (',
       },
     ],

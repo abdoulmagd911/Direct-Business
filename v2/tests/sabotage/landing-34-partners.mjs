@@ -76,7 +76,7 @@ export const sabotages = [
     edits: [
       {
         file: LIST,
-        find: '<RowActions row={r} mayArchive={full} onOpen={open} words={words} />',
+        find: '<RowActions row={r} mayArchive={mayArchiveRow(r)} onOpen={open} words={words} />',
         replace: '{null}',
       },
     ],

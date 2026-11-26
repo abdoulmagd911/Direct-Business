@@ -39,6 +39,7 @@ import { SummaryTabs } from './record/SummaryTabs';
 import { PartnerAchievements } from './record/PartnerAchievements';
 import { EditPartnerDialog } from './record/EditPartnerDialog';
 import { AddNoteDialog, LogActivityDialog } from './record/LogActivityDialog';
+import * as rule from '../may-change';
 import { ContactDialog, ContractDialog, IdentifierDialog, ReferenceDialog } from './record/RailDialogs';
 import { archiveLanded, archivedShown, savedEditLanded, withSavedEdit, type SavedEdit } from './record/saved-overlay';
 import { OwnerDialog, SideDialog, SideOffDialog, StatusDialog } from './record/SideDialogs';
@@ -192,33 +193,33 @@ export function PartnerRecord({ data }: { data: PartnerRecordData }) {
   const sidesOn = card.sides.filter((s) => s.on);
   const sideOf = (k: Side) => card.sides.find((s) => s.side === k && s.on) ?? null;
   const archived = archivedShown(card.archived_at, saidArchived);
-  const fullOn = (k: Side) => me.levels[SIDE_PAGE[k]] === 'full';
-  /** Full on any side the record has on: the record-level Remove / Archive / Unarchive gate. */
-  const full = sidesOn.some((s) => fullOn(s.side));
+  /** The record-level Remove / Archive / Unarchive gate (partner.may_change, Landing 55): a side the record has on
+   *  that the reader may write — Full on its page, or Own and its owner (or the extra "Edit someone else's work"). */
+  const full = rule.mayChangeOrganisation(me, sidesOn);
   const canAssign = (k: Side) => me.capabilities.includes(`${SIDE_PAGE[k]}.assign`);
   const isOwner = (s: SideFull | null) => !!s && s.owner_id === me.person.id;
   // Every gate below is the database's own rule, so a button is offered only where its save is allowed. An archived
   // organisation takes no change at all until it is unarchived (partner.writable and partner.side_writable refuse it):
   // its write buttons are not offered, and a line under the header says why.
-  /** One side's rows — contracts, references, activities, status (partner.side_writable): Full on that side's page, or
-   *  Own and its owner. */
-  const mayWriteSide = (k: Side) => {
-    const s = sideOf(k);
-    return !archived && !!s && (fullOn(k) || (me.levels[SIDE_PAGE[k]] === 'own' && isOwner(s)));
-  };
+  /** One side's rows — contracts, references, status (partner.side_writable): Full on that side's page, or Own and
+   *  its owner (or the extra "Edit someone else's work"). */
+  const mayWriteSide = (k: Side) => !archived && rule.mayWriteSide(me, sideOf(k));
   const mayWrite = sidesOn.some((s) => mayWriteSide(s.side));
-  /** The shared part — names, details, contacts, identifiers (partner.writable): Full on a side the record has on. An
-   *  Own-level owner logs and adds on their side, but these stay with Full. */
+  /** The shared part — names, details, contacts, identifiers (partner.writable): who may change the organisation. A
+   *  team member changes their own, never a colleague's (Landing 55). */
   const mayEdit = full && !archived;
-  /** A side's type, tier and start, switching a side on or off (partner.side_set): Full on that side. */
-  const maySide = (k: Side) => !archived && fullOn(k);
+  /** A side's type, tier and start, switching a side on or off (partner.side_set, partner.side_off). */
+  const maySide = (k: Side) => !archived && rule.mayChangeSide(me, k, sidesOn);
+  /** A note or a logged activity is the writer's own entry (partner.activity_log, core.note_add): Own or above on a
+   *  side the record has on — it changes nothing of the organisation's. */
+  const mayLog = !archived && rule.mayLogOn(me, sidesOn);
   /** A side's status: its owner, or someone who assigns on that side — on a side they may write (partner.side_status_set). */
   const mayStatus = (k: Side) => mayWriteSide(k) && (isOwner(sideOf(k)) || canAssign(k));
   /** A side's owner: someone who assigns on that side, on a side they may write (partner.side_owner_set). */
   const mayOwner = (k: Side) => mayWriteSide(k) && canAssign(k);
   /** Anything behind the ⋯ menu (F110). A reader with none of these gets no More button at all — the menu would be
       empty, a blank white box. */
-  const hasMoreActions = full || mayWrite || SIDES.some((k) => maySide(k) || mayStatus(k) || mayOwner(k));
+  const hasMoreActions = full || mayWrite || mayLog || SIDES.some((k) => maySide(k) || mayStatus(k) || mayOwner(k));
   const mayIdentify =
     mayEdit &&
     (me.capabilities.includes('clients.identify') || me.capabilities.includes('suppliers_partners.identify'));
@@ -303,7 +304,7 @@ export function PartnerRecord({ data }: { data: PartnerRecordData }) {
 
   const actions = (
     <>
-      {mayWrite ? (
+      {mayLog ? (
         <Button variant="primary" icon={<Plus />} onClick={() => setLogging(true)} data-activity-log>
           {t('partners.activity.log')}
         </Button>
@@ -364,7 +365,7 @@ export function PartnerRecord({ data }: { data: PartnerRecordData }) {
                   </div>
                 );
               })}
-              {mayWrite ? (
+              {mayLog ? (
                 <MenuItem onSelect={() => setNoting(true)} data-note-add>
                   {t('partners.note.add')}
                 </MenuItem>
@@ -982,7 +983,7 @@ export function PartnerRecord({ data }: { data: PartnerRecordData }) {
             <section className="rounded-lg border border-border bg-raised px-5 py-2" data-partner-notes>
               <div className="flex items-center justify-between gap-3 border-b border-border py-2.5">
                 <h2 className="text-base font-semibold">{t('partners.activity.timeline')}</h2>
-                {mayWrite ? (
+                {mayLog ? (
                   <span className="flex gap-2">
                     <Button size="sm" onClick={() => setNoting(true)} data-note-add-inline>
                       {t('partners.note.add')}

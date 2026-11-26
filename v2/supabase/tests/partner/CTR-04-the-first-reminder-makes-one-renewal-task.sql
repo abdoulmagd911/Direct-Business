@@ -16,6 +16,11 @@ select set_config('t.admin', test.person('Test Admin', 'admin')::text, true);
 select set_config('t.am1', test.person('Test Account Manager', 'member')::text, true);
 select set_config('t.am2', test.person('Test Other Member', 'member')::text, true);
 select set_config('t.viewer', test.person('Test Viewer', 'viewer')::text, true);
+-- Landing 55: a team member starts at Own on the organisation pages. What this test pins is unchanged, so its
+-- member is given Full there by a person's own setting — what the role gave when the test was written.
+insert into core.person_page_level (person_id, page_key, level, reason)
+values (current_setting('t.am2')::uuid, 'clients', 'full', 'made up: Full on Partners'),
+       (current_setting('t.am2')::uuid, 'suppliers_partners', 'full', 'made up: Full on Suppliers & partners');
 update core.person set team_id = (select id from core.team where code = 'test_desk')
 where id in (current_setting('t.am1')::uuid, current_setting('t.am2')::uuid);
 select set_config('t.d0', core.riyadh_today()::text, true);

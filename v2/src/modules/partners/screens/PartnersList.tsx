@@ -77,6 +77,7 @@ import {
   type PartnersAnswer,
   type Side,
 } from '../types';
+import { mayAddOrganisation, mayWriteSide } from '../may-change';
 
 export { addressOf, type ListFilters };
 
@@ -140,6 +141,9 @@ export function PartnersList({
   const base = SIDE_ROUTE[side];
   const page = SIDE_PAGE[side];
   const full = me.levels[page] === 'full';
+  // Landing 55: Own adds an organisation (it is theirs) and archives a row they own; a colleague's row offers neither
+  const mayAdd = mayAddOrganisation(me, side);
+  const mayArchiveRow = (r: PartnerRow) => mayWriteSide(me, { side, owner_id: r.owner_id });
   const canAssign = me.capabilities.includes(`${page}.assign`);
   // FIX-01 (F100/F138, P1b): a member who owns records on this side bulk-assigns their own — the door checks each
   // row is theirs; without either capability there is no selection at all.
@@ -160,14 +164,14 @@ export function PartnersList({
   for (const id of plan.hidden) visibility[id] = false;
   const [assignIds, setAssignIds] = useState<string[]>([]);
   const [more, setMore] = useState(false);
-  const [creating, setCreating] = useState(startCreating && full);
+  const [creating, setCreating] = useState(startCreating && mayAdd);
   const [assigning, setAssigning] = useState(false);
   // Create on a phone goes to ?new=1 while this list is already on screen: that address opens the dialog too
   const wantsNew = useSearchParams().get('new') === '1';
   const [sawNew, setSawNew] = useState(wantsNew);
   if (wantsNew !== sawNew) {
     setSawNew(wantsNew);
-    if (wantsNew && full) setCreating(true);
+    if (wantsNew && mayAdd) setCreating(true);
   }
   const [q, setQ] = useState(filters.q);
   // the box shows the search the address holds: "Clear all" (and any navigation) changes the address, so the box
@@ -354,7 +358,7 @@ export function PartnersList({
         header: () => <span className="sr-only">{t('common.actions')}</span>,
         cell: ({ row }) => (
           <span className="-mx-2 flex justify-end">
-            <RowActions row={row.original} mayArchive={full} onOpen={open} words={words} />
+            <RowActions row={row.original} mayArchive={mayArchiveRow(row.original)} onOpen={open} words={words} />
           </span>
         ),
       },
@@ -397,7 +401,7 @@ export function PartnersList({
           ) : null
         }
         actions={
-          full ? (
+          mayAdd ? (
             <Button
               variant="primary"
               icon={<Plus />}
@@ -588,7 +592,7 @@ export function PartnersList({
             message={trulyEmpty ? t(`partners.list.noneYet.${side}`) : t('partners.none')}
             action={
               trulyEmpty ? (
-                full ? (
+                mayAdd ? (
                   <Button variant="primary" icon={<Plus />} onClick={() => setCreating(true)} data-partner-new-empty>
                     {side === 'client' ? t('partners.newClient') : t('partners.newSupplier')}
                   </Button>
@@ -647,7 +651,7 @@ export function PartnersList({
                   ) : null}
                   {/* over the row's own tap (the link's ::after), so the button is pressed, not the row */}
                   <span className="relative z-[1] -me-2 shrink-0">
-                    <RowActions row={r} mayArchive={full} onOpen={open} words={words} />
+                    <RowActions row={r} mayArchive={mayArchiveRow(r)} onOpen={open} words={words} />
                   </span>
                 </li>
               );
@@ -737,7 +741,8 @@ export function PartnersList({
 
 /**
  * A row's Actions (Landing 34): one button on every row, always drawn — Open for everyone; Archive, or Unarchive on
- * an archived row, for someone with Full on the page (the database's own gate: partner.writable). Archive and
+ * an archived row, for someone who may change that organisation (the database's own gate: partner.writable — Full on
+ * the page, or Own and the row's owner). Archive and
  * Unarchive are one request with its Undo, and the list reads again after it.
  */
 function RowActions({
