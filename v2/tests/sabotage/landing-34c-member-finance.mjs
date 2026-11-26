@@ -47,8 +47,9 @@ export const sabotages = [
     edits: [
       {
         file: OVERVIEW_PAGE,
-        find: "full={(me.levels.finance ?? 'none') === 'full'}",
-        replace: "full={(me.levels.finance ?? 'none') !== 'none'}",
+        // Landing 56: New invoice follows Own or Full (mayType), so that is the line a viewer is let through on
+        find: 'mayType={mayTypeInvoice(me.levels.finance)}',
+        replace: "mayType={(me.levels.finance ?? 'none') !== 'none'}",
       },
     ],
   },
@@ -60,8 +61,9 @@ export const sabotages = [
     edits: [
       {
         file: OVERVIEW_PAGE,
-        find: "full={(me.levels.finance ?? 'none') === 'full'}",
-        replace: "full={(me.levels.finance ?? 'none') !== 'none'}",
+        // Landing 56: New invoice follows Own or Full (mayType), so that is the line a viewer is let through on
+        find: 'mayType={mayTypeInvoice(me.levels.finance)}',
+        replace: "mayType={(me.levels.finance ?? 'none') !== 'none'}",
       },
     ],
   },

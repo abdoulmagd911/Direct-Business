@@ -134,3 +134,16 @@ the design's Member in full: their own organisations, and their own clients' Fin
   level the role does not give, so the override is again what the test proves is read.
   `a-tender-names-another-organisations-client-id` (TND-01) pasted the door's old text, which asked for Full and so
   refused the test's team member one line early; the plant carries the door's new lines and breaks only its own.
+
+## CI run on the second push — three older browser plants, and their fix (fourth commit)
+
+Everything else was green (the whole browser suite, both database jobs, the unit sabotages). Three older browser
+plants were not red for their own reason, each because the button it plays with moved to the new rule:
+
+- `e2e-l34c-a-viewer-gets-new-invoice-in-the-employee-view` and `e2e-l34c-a-viewer-gets-the-write-controls` let a
+  Viewer through on the "Full" flag, which no longer decides New invoice. They now let the Viewer through on the
+  line that does (Own or Full).
+- `member-can-close-a-month` gives everyone Close month; the first person the test now finds with it is the team
+  member (at Own), so the plant names that assertion.
+
+Each of the three was run on the builder's machine against the local stack: red as it must be.
