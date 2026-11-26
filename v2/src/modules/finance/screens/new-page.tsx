@@ -4,6 +4,7 @@ import { serverRpc } from '@/core/db/server-rpc';
 import { DataState } from '@/ui/DataState';
 import { PageHeader } from '@/ui/PageHeader';
 import { Page } from '@/ui/shell/Page';
+import { mayTypeInvoice } from '../own-clients';
 import { riyadhDay } from '../period';
 import type { ListEntry, Lists } from '../invoice-form';
 import { NewInvoice } from './NewInvoice';
@@ -17,7 +18,8 @@ const list = async (name: string) => ((await serverRpc('list', { p_list: name })
  */
 export async function NewInvoicePage() {
   const [me, t] = await Promise.all([requireMe(), getTranslations()]);
-  const full = (me.levels.finance ?? 'none') === 'full';
+  // Landing 56: Own types an invoice too — the database keeps it only when the client is their own
+  const full = mayTypeInvoice(me.levels.finance);
   let lists: Lists | null = null;
   if (full) {
     try {

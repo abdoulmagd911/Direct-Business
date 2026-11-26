@@ -19,7 +19,7 @@ select test.ok(current_setting('t.batch') <> '', 'a head of department starts an
 
 -- by role: a team member and a manager do not, with Finance at Full
 select test.as_person(current_setting('t.b')::uuid);
-select test.eq(api.me() -> 'levels' ->> 'finance', 'full', 'a team member holds Finance at Full');
+select test.eq(api.me() -> 'levels' ->> 'finance', 'own', 'a team member holds Finance at Own'); -- Landing 56
 select test.raises(format('select api.import_batch_start(%L, %L, %L)', current_setting('t.p'), 'invoice_export', 'made-up.csv'),
   '42501', 'a team member without the extra cannot start an import', 'access.needs_capability');
 select test.raises(format('select api.import_apply(%L, %L::jsonb)', current_setting('t.batch'), '[]'),

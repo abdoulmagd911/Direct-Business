@@ -27,8 +27,9 @@ where id in (current_setting('t.mgr')::uuid, current_setting('t.a')::uuid, curre
 select test.as_person(current_setting('t.b')::uuid);
 select test.eq(api.me() -> 'levels' ->> 'clients', 'own', 'a team member starts at Own on Partners');
 select test.eq(api.me() -> 'levels' ->> 'suppliers_partners', 'own', 'and on Suppliers & partners');
-select test.eq(api.me() -> 'levels' ->> 'finance', 'full', 'Finance is not touched: still Full');
-select test.eq(api.me() -> 'levels' ->> 'partner_finance', 'full', 'nor an organisation''s Finance tab');
+-- Finance has its own rule (Landing 56, "Own clients only"): a team member is at Own there too, which OWN-02 pins
+select test.eq(api.me() -> 'levels' ->> 'finance', 'own', 'Finance follows its own rule: Own (Landing 56)');
+select test.eq(api.me() -> 'levels' ->> 'partner_finance', 'own', 'and on an organisation''s Finance tab');
 
 -- A's client, made by a manager, with a contact
 select test.as_person(current_setting('t.mgr')::uuid);

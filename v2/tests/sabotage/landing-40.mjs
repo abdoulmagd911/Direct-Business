@@ -61,8 +61,8 @@ export const sabotages = [
     edits: [
       {
         file: LIVE,
-        find: '        {full && mayImport ? <FinanceImportSection /> : null}',
-        replace: '        {full ? <FinanceImportSection /> : null}',
+        find: '        {mayType && mayImport ? <FinanceImportSection /> : null}',
+        replace: '        {mayType ? <FinanceImportSection /> : null}',
       },
     ],
   },

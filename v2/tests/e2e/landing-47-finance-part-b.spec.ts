@@ -360,7 +360,10 @@ test('5 · an expense file: a repeated line counts once, a tax invoice number is
   await page.setViewportSize({ width: 1440, height: 900 });
   const { call, admin } = await signedInAdmin(page);
   const org = await seedOrg(call, 'Expense File');
-  const txn = rowNo();
+  // the number is random; one that happens to carry the figures checked below ("150", "250") would answer for them
+  // (CI on Landing 56: …822508 read as the file's own sum), so such a number is drawn again
+  let txn = rowNo();
+  while (/150|250/.test(txn)) txn = rowNo();
   await seedImported(org.id, admin.id, '1964-02-10', [{ number: txn, revenue: 1000, cost: null }]);
   await page.goto('/finance?period=custom&from=1964-02-01&to=1964-02-29');
   await hydrated(page);
@@ -443,14 +446,16 @@ test('6 · the speed gate: the four new Finance reads answer in under 3 s in tot
         expect(total, `the Finance reads as ${role} took ${total} ms in total`).toBeLessThan(3000);
         out[role]!.total = total;
       }
-      // setting a deal type is for Full on Finance: a viewer (View) and a person with no role are refused
+      // setting a deal type is for Full on Finance, or for Own on a row of their own client (Landing 56): a viewer
+      // (View) and a person with no role are refused, and so is a team member here — a row under no organisation is
+      // nobody's own
       const set = await callAs(who.context, 'finance_deal_type_set', {
         p_partner: null,
         p_number: 'MADE-UP-NOT-THERE',
         p_type: 'tender',
         p_reason: 'made up e2e',
       });
-      if (role === 'viewer' || role === 'none')
+      if (role === 'viewer' || role === 'none' || role === 'member')
         expect(set.status, `finance_deal_type_set as ${role}: refused`).toBe(403);
       else expect(set.status, `finance_deal_type_set as ${role}: allowed, and the row is not there`).not.toBe(403);
       console.log(`[l47-speed] ${role} · ${JSON.stringify(out[role])}`);

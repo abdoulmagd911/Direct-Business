@@ -123,6 +123,7 @@ function api.finance_merge_rule_remove(p_id uuid, p_reason text) execute authent
 function api.finance_merge_rule_save(p_id uuid, p_fields jsonb, p_version integer, p_reason text) execute authenticated
 function api.finance_merge_rules() execute authenticated
 function api.finance_month_close(p_month date, p_note text) execute authenticated
+function api.finance_my_clients() execute authenticated
 function api.finance_no_supplier_cost_set(p_product uuid, p_value boolean, p_version integer, p_reason text) execute authenticated
 function api.finance_not_invoiced(p_from date, p_to date) execute authenticated
 function api.finance_partner_credit(p_partner uuid) execute authenticated
@@ -480,6 +481,7 @@ function finance.merge_rule_remove(p_id uuid, p_reason text) execute authenticat
 function finance.merge_rule_save(p_id uuid, p_fields jsonb, p_version integer, p_reason text) execute authenticated
 function finance.merge_rules() execute authenticated
 function finance.month_close_do(p_month date, p_note text) execute authenticated
+function finance.my_clients() execute authenticated
 function finance.no_supplier_cost_set(p_product uuid, p_value boolean, p_version integer, p_reason text) execute authenticated
 function finance.not_invoiced(p_from date, p_to date) execute authenticated
 function finance.partner_credit_of(p_partner uuid) execute authenticated

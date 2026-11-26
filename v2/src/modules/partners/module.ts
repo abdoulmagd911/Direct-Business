@@ -56,8 +56,8 @@ export default defineModule({
       route: '/partners/[id]?tab=finance',
       label: 'partners.companyFinance.page',
       built: true,
-      // a team member starts at full, as on Finance itself (the owner, 21 Nov); a viewer only reads
-      defaults: { admin: 'full', head: 'full', manager: 'full', member: 'full', viewer: 'view' },
+      // a team member starts at Own, as on Finance itself (Landing 56: their own clients' entries); a viewer only reads
+      defaults: { admin: 'full', head: 'full', manager: 'full', member: 'own', viewer: 'view' },
     },
   ],
   entities: [

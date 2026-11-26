@@ -41,8 +41,8 @@ describe('the Team member role on the organisation pages', () => {
       expect([d?.admin, d?.head, d?.manager, d?.viewer], key).toEqual(['full', 'full', 'full', 'view']);
     }
   });
-  it('Finance is not touched: an organisation’s Finance tab stays at Full for a team member', () => {
-    expect(pageOf('partner_finance')?.defaults?.member).toBe('full');
+  it('an organisation’s Finance tab follows Finance’s own rule: Own for a team member (Landing 56)', () => {
+    expect(pageOf('partner_finance')?.defaults?.member).toBe('own');
   });
 });
 

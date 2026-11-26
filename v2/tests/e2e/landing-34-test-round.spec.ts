@@ -536,7 +536,7 @@ test('c · the top search opens a result by Enter and by a click; the menu moves
 
 // ------------------------------------------------------------------------------------------------- d · access
 
-const invoiceOf = (ym: string, total: number) => ({
+const invoiceOf = (ym: string, total: number, clientIdOf?: string) => ({
   p_table: 'invoice',
   p_fields: {
     ref: `TX-935${Math.floor(Math.random() * 900000 + 100000)}`,
@@ -546,6 +546,7 @@ const invoiceOf = (ym: string, total: number) => ({
     paid_on: `${ym}-12`,
     total_sar: total,
     customer_name: 'Made-up Trading Org',
+    ...(clientIdOf ? { client_id: clientIdOf } : {}),
   },
   p_reason: 'made up',
 });
@@ -575,11 +576,32 @@ test('d · a member sees Finance — the menu, the bar, Ctrl K, by address, on a
       p_level: 'none',
       p_reason: 'Made up: no Finance for this person',
     });
+  // Landing 56 ("Own clients only" on Finance): a member adds for a client that is theirs — each of the two members
+  // below owns one made-up client, with its client ID
+  const members: { who: string; person: Awaited<ReturnType<typeof staffAs>>; cid: string }[] = [];
+  for (const who of ['a member', 'a second member of Commercial']) {
+    const person = await staffAs('member');
+    const made = await adminDoor('partner_create', {
+      p_partner: {
+        trade_name_en: `Made Up Own Client Org ${tag()}`,
+        sides: [{ side: 'client', type: 'corporate', owner_id: person.id }],
+      },
+    });
+    const cid = `9904${Math.floor(Math.random() * 90000 + 10000)}`;
+    await adminDoor('identifier_add', {
+      p_partner: made.id!,
+      p_kind: 'payments_client_id',
+      p_value: cid,
+      p_reason: 'made up',
+      p_subkind: 'prepaid',
+    });
+    members.push({ who, person, cid });
+  }
   await a.context.close();
 
   // a member, and a second member standing in for anyone of Commercial: Finance everywhere, and New invoice
-  for (const who of ['a member', 'a second member of Commercial']) {
-    const { context, page } = await signedInAs(browser, await staffAs('member'));
+  for (const { who, person, cid } of members) {
+    const { context, page } = await signedInAs(browser, person);
     try {
       await hydrated(page);
       expect(await drawerLabels(page), `${who}: Finance is in the menu`).toContain('Finance');
@@ -593,7 +615,7 @@ test('d · a member sees Finance — the menu, the bar, Ctrl K, by address, on a
 
       // the member adds a paid invoice of their own in a far-past month, and Finance draws it for them
       const ym = await quietMonth();
-      const added = await callAs(context, 'finance_row_add', invoiceOf(ym, 4320));
+      const added = await callAs(context, 'finance_row_add', invoiceOf(ym, 4320, cid));
       expect(added.status, `${who}: their own write to Finance is taken: ${JSON.stringify(added.body)}`).toBe(200);
       await page.locator('[data-drawer] a[href="/finance"]').click();
       await expect(page, `${who}: Finance opens from the menu`).toHaveURL(/\/finance(\?|$)/, { timeout: 30_000 });

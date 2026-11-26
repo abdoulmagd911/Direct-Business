@@ -56,9 +56,10 @@ select test.eq((select jsonb_build_object('consumed', t -> 'consumed', 'named', 
   '{"consumed": 0, "named": false}'::jsonb, 'nothing consumes a tender until it names its client ID');
 
 -- naming the ID: Full on Finance, a tender ID of the same organisation, one tender per ID
-select test.as_person(current_setting('t.am')::uuid);
+-- Landing 56: at Own a person names it for their own client only — a colleague of the tender's owner is refused
+select test.as_person(test.person('Test Other Member', 'member'));
 select test.raises(format('select api.finance_tender_client_id_set(%L, %L)', current_setting('t.T1'), current_setting('t.id1')),
-  '42501', 'Own on Finance names no client ID', 'access.needs_level');
+  '42501', 'Own on Finance names no client ID', 'finance.own_clients_only'); -- Landing 56: not their client
 select test.as_person(current_setting('t.head')::uuid);
 select test.raises(format('select api.finance_tender_client_id_set(%L, %L)', current_setting('t.T1'), current_setting('t.idp')),
   'P0001', 'a postpaid ID is not a tender''s', 'finance.tender_client_id_invalid');

@@ -2842,7 +2842,8 @@
       "commission_is_typed_by_hand": "Only an invoice typed by hand takes a commission type ({detail})",
       "commission_needs_type": "Say which commission it is",
       "commission_needs_proof": "A commission needs its proof",
-      "edit_at_transaction_level": "A monthly invoice is not edited or removed by hand: change its transactions ({detail})"
+      "edit_at_transaction_level": "A monthly invoice is not edited or removed by hand: change its transactions ({detail})",
+      "own_clients_only": "You add and change Finance entries for your own clients only ({detail})"
     },
     "wrap_up": {
       "choice_invalid": "Choose Tomorrow, Next week, Drop or Done",

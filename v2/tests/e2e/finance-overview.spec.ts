@@ -176,7 +176,7 @@ test('desk 1440: the tiles print the exact figure and the Provisional part, the 
   await expect(tile(page, 'revenue').locator('[data-finance-exact]')).toContainText('1,500 SAR');
 });
 
-test('a member reads Finance at Full — the month, its figures, Close month and New invoice — and a viewer reads the same month with no Close month and no New invoice (the owner, 21 Nov)', async ({
+test('a member reads Finance at Own — the month, its figures and New invoice, no Close month — and a viewer reads the same month with no Close month and no New invoice (the owner, 21 and 26 Nov)', async ({
   page,
 }) => {
   const ym = await oldMonth();
@@ -189,7 +189,8 @@ test('a member reads Finance at Full — the month, its figures, Close month and
   }, ym);
   // The owner's decision of 21 Nov (it overrules Landing 34's "members do not see Finance"): everyone sees Finance and
   // everyone adds and edits it. A Team member starts at Full: the month exists (the admin seeded it above), the member
-  // reads it — the month row and the figures — and has the write controls a manager has: Close month and New invoice
+  // reads it — the month row and the figures. Landing 56 (the owner, 26 Nov: "Own clients only" on Finance): the member
+  // starts at Own — New invoice is theirs (for their own clients); closing a month asks for Full and is a manager's
   const member = await makePerson();
   await page.context().clearCookies();
   await signIn(page, member.email);
@@ -201,8 +202,8 @@ test('a member reads Finance at Full — the month, its figures, Close month and
   await expect(page.locator('[data-finance-tile]'), 'figures for a member').not.toHaveCount(0);
   await expect(
     page.locator(`[data-finance-month="${ym}-01"] [data-close-month]`),
-    'a member, at Full on Finance, has Close month',
-  ).toHaveCount(1);
+    'a member, at Own on Finance, has no Close month',
+  ).toHaveCount(0);
   await expect(page.locator('[data-new-invoice-link]'), 'a member has New invoice').toHaveCount(1);
 
   // Only the view-only role reads without editing: a Viewer (View on Finance) sees the same month and figures, and

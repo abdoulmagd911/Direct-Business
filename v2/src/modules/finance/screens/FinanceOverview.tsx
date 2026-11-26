@@ -64,6 +64,7 @@ export function FinanceOverview({
   ask,
   today,
   full,
+  mayType = full,
   data,
   loading,
   refused,
@@ -76,6 +77,8 @@ export function FinanceOverview({
   today: string;
   /** Full on Finance: the person who closes a month (V620). */
   full: boolean;
+  /** Own or Full on Finance: the person who types an invoice (Landing 56 — at Own, for their own clients). */
+  mayType?: boolean;
   data: OverviewData;
   /** A block still being read: drawn as loading, not as failed. */
   loading?: Partial<Record<keyof OverviewData, boolean>>;
@@ -164,8 +167,9 @@ export function FinanceOverview({
       <PageHeader
         title={t('nav.finance')}
         actions={
-          // Full on Finance types an invoice here; on a phone the bar's Create already offers it, one main action (V630)
-          full ? (
+          // Own or Full on Finance types an invoice here (Landing 56: at Own, for their own clients); on a phone the
+          // bar's Create already offers it, one main action (V630)
+          mayType ? (
             <Link
               href="/finance/new"
               className={cn(buttonVariants({ variant: 'secondary' }), 'max-sm:hidden')}

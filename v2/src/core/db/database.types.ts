@@ -346,6 +346,7 @@ export type Database = {
       };
       finance_merge_rules: { Args: Record<PropertyKey, never>; Returns: Json };
       finance_month_close: { Args: { p_month: string; p_note?: string }; Returns: Json };
+      finance_my_clients: { Args: Record<PropertyKey, never>; Returns: Json };
       finance_no_supplier_cost_set: {
         Args: { p_product: string; p_reason?: string; p_value: boolean; p_version: number };
         Returns: Json;

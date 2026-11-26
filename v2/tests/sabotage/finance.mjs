@@ -60,7 +60,8 @@ export const sabotages = [
   {
     name: 'member-can-close-a-month',
     breaks: [E2E],
-    expect: 'only Full on Finance closes a month',
+    // Landing 56: a team member is at Own on Finance, so the member is the first the test finds with the button
+    expect: 'a member, at Own on Finance, has no Close month',
     edits: [{ file: OVERVIEW, find: '  return full ? (', replace: '  return true ? (' }],
   },
   {

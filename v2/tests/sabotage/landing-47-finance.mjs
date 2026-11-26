@@ -96,8 +96,8 @@ export const sabotages = [
     edits: [
       {
         file: REPORT,
-        find: '    report.canSetDealType === true && !!onSetDealType && !!r.number && (r.source',
-        replace: '    !!onSetDealType && !!r.number && (r.source',
+        find: '    (report.canSetDealType === true || (!!mine && mayChangeEntryOf(mine, r.source_partner_id))) &&',
+        replace: '    true &&',
       },
     ],
   },
