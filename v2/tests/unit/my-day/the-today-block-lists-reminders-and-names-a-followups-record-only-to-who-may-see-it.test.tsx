@@ -182,7 +182,7 @@ describe('"Today" is drawn once in a row (QA-564)', () => {
     );
   it('says Today once, then the four boxes in order: Do now, Plan it, Quick or hand off, Later (V661)', () => {
     const html = draw({ tasks: boxTasks() });
-    expect(headings(html)).toEqual(['Today', 'Do now 1', 'Plan it 1', 'Quick or pass to someone 1', 'Later 1']);
+    expect(headings(html)).toEqual(['Today', 'Do now 1', 'Plan it 1', 'Quick or hand off 1', 'Later 1']);
     expect(headings(html).filter((h) => h === 'Today')).toHaveLength(1);
   });
   it('says the same in Arabic: افعلها الآن · خطّط لها · سريعة أو فوّضها · لاحقًا', () => {

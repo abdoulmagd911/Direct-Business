@@ -290,7 +290,17 @@
       "kinds": {
         "sticky": "Note",
         "meeting": "Meeting",
-        "checklist": "Checklist"
+        "checklist": "Checklist",
+        "task": {
+          "meeting": "Meetings",
+          "call": "Calls",
+          "follow_up": "Follow-ups",
+          "request": "Requests",
+          "report": "Reports",
+          "document": "Documents",
+          "site_visit": "Site visits",
+          "other": "Other"
+        }
       },
       "visibility": {
         "label": "Who sees it",
@@ -474,8 +484,14 @@
         "reminders": "Reminders",
         "do_now": "Do now",
         "plan_it": "Plan it",
-        "quick": "Quick or pass to someone",
-        "later": "Later"
+        "quick": "Quick or hand off",
+        "later": "Later",
+        "rest": "The rest of today",
+        "groupBy": "Group by",
+        "view": {
+          "kind": "By kind",
+          "priority": "By priority"
+        }
       },
       "quick": {
         "title": "Quick capture",
@@ -535,7 +551,7 @@
         "failed": "Your day could not load."
       },
       "three": {
-        "title": "Today's three",
+        "title": "Today's Three",
         "sub": "From your own task lists",
         "groups": {
           "important": "Important",
@@ -554,15 +570,20 @@
           "maintenance": "Maintenance — the rest of your own open tasks"
         },
         "streak": {
-          "days": "Streak: {days, plural, one {# working day} other {# working days}}",
-          "none": "No streak yet — finish three today to start one",
+          "days": "{days}-day streak",
+          "none": "No streak yet",
           "today": "{done} of {target} done today"
         },
         "team": {
           "title": "My team's streaks",
           "days": "{days, plural, =0 {No streak yet} one {# working day} other {# working days}}"
         },
-        "more": "{count, plural, one {# more in Tasks} other {# more in Tasks}}"
+        "more": "{count, plural, one {# more in Tasks} other {# more in Tasks}}",
+        "groupSub": {
+          "important": "Highest priority",
+          "short": "Under 15 minutes",
+          "maintenance": "Routine tasks"
+        }
       }
     },
     "settings": {

@@ -218,6 +218,8 @@ test('B1 · B2 — a comment thread with one pinned decision, a linked record, a
   // ---- the person mentioned: the task is under Helping, on My day and on Tasks, on a PC and on a phone
   for (const size of [PC, PHONE]) {
     const theirs = await openAs(browser, mate, size, '/my-day');
+    // Landing 53: My day's block opens by kind; Helping is a group of its by-priority view
+    await theirs.page.locator('[data-today-block] [data-rest-view-option="priority"]').click();
     await expect(
       theirs.page.locator('[data-today-group="helping"]', { hasText: `Made-up ${word} thread` }),
       `My day lists it under Helping at ${size.width}`,

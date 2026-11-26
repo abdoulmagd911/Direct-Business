@@ -109,7 +109,7 @@ type OpenCounts = {
  *  · `later` unstarred ones due five or more days ahead, `overdue` unstarred ones overdue since more than a year
  *    (400 days, then 380 …) and `undated` unstarred ones with no due day — all three Maintenance.
  *  · `ghosts`: one starred task due today whose status says cancelled though its closed stamp is empty, and one
- *    starred task done today — neither is current, so neither may be drawn anywhere on My day.
+ *    starred task done yesterday — neither is current, so neither may be drawn anywhere on My day.
  * `three` and `totals` are what the rule then gives — each group by due day (no due day last) then number, three at
  * most — worked out here from the days seeded, never read back from the screen or from the database's own pick.
  */
@@ -151,7 +151,9 @@ export async function seedOpenTasks(owner: Staff, word: string, counts: OpenCoun
         where number = $1`,
       [cancelled],
     );
-    const [now] = await sql<{ day: string }>(`select to_char(core.riyadh_today(), 'YYYY-MM-DD') as day`);
+    // done YESTERDAY: since Landing 53 a task done today keeps its place in the three, ticked (THREE-02, and the
+    // landing-53 spec); one done on an earlier day is not current
+    const [now] = await sql<{ day: string }>(`select to_char(core.riyadh_today() - 1, 'YYYY-MM-DD') as day`);
     const done = await seedTask(owner, `Made-up task ${word} finished`, { offset: 0, starred: true, doneOn: now!.day });
     out.ghosts.push(cancelled, done);
     out.titles[cancelled] = `Made-up task ${word} cancelled`;

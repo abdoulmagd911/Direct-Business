@@ -248,9 +248,9 @@ export const sabotages = [
     edits: [
       {
         file: THREE,
-        find: 'className="flex flex-col gap-1 border-t border-border pt-3 text-sm text-muted lg:flex-row lg:flex-wrap lg:gap-x-6"',
+        find: 'className="flex flex-col gap-1 pt-3 text-xs text-muted max-lg:border-t max-lg:border-border lg:flex-row lg:flex-wrap lg:gap-x-5"',
         replace:
-          'className="hidden flex-col gap-1 border-t border-border pt-3 text-sm text-muted lg:flex lg:flex-row lg:flex-wrap lg:gap-x-6"',
+          'className="hidden flex-col gap-1 pt-3 text-xs text-muted max-lg:border-t max-lg:border-border lg:flex lg:flex-row lg:flex-wrap lg:gap-x-5"',
       },
     ],
   },

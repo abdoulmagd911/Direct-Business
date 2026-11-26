@@ -236,11 +236,14 @@ test("a · Today's three is on My day for every employee role, with its streak, 
           String(full.streak.days),
         );
         await expect(streak, 'member: the streak line says the working days in a row').toContainText(
-          `Streak: ${full.streak.days} working days`,
+          `${full.streak.days}-day streak`,
         );
-        await expect(streak, 'member: the streak line says how many are done today').toContainText(
-          `${full.streak.todayDone} of 3 done today`,
-        );
+        // Landing 53: "N of 9 done today" counts the rows of the three that are ticked, out of the rows drawn
+        const ticked = await three.locator('[data-three-row][data-row-done]').count();
+        await expect(
+          three.locator('[data-streak-today]'),
+          'member: the streak line says how many of the rows drawn are done today',
+        ).toHaveText(`${ticked} of 9 done today`);
 
         // on a phone the three groups stack and nothing scrolls sideways
         await page.setViewportSize(PHONE);
@@ -857,7 +860,7 @@ test('f · the workspace reads Direct Corporate; the phone top bar carries the b
   test.setTimeout(240_000);
   const person = await staffAs('admin');
   const word = tag();
-  // more tasks due today and tomorrow than Today's three takes, so the Today block keeps a "Quick or pass to someone"
+  // more tasks due today and tomorrow than Today's three takes, so the Today block keeps a "Quick or hand off"
   // group. Landing 35: a group short of three is topped up, so the three takes up to nine — ten are made, one is left.
   const tasks = await seedOpenTasks(person, word, { starred: 0, quick: 10, later: 0 });
   await page.setViewportSize(DESKTOP);
@@ -868,12 +871,14 @@ test('f · the workspace reads Direct Corporate; the phone top bar carries the b
   await expect(page, 'the tab title of My day').toHaveTitle('My day · Direct Corporate');
 
   // words keep their spaces: a group's name and its count; a record's two counts
+  // Landing 53: the block opens by kind; the four boxes are one press away
+  await page.locator('[data-today-block] [data-rest-view-option="priority"]').click();
   const heading = page.locator('[data-today-block] [data-today-group="quick"] h3');
   await expect(heading, 'the Today block keeps the tasks not picked').toBeVisible();
   expect(
     (await heading.evaluate((e) => e.textContent ?? '')).trim(),
     'the group heading keeps the space before its count',
-  ).toMatch(/someone \d/);
+  ).toMatch(/hand off \d/);
   await open(page, `/partners/${org.id}`);
   const counts = page.locator('[data-record-header] [data-record-counts]');
   await expect(counts, 'the record header carries its counts').toBeVisible();

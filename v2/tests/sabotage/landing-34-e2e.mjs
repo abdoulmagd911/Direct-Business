@@ -92,8 +92,8 @@ export const sabotages = [
     edits: [
       {
         file: 'src/modules/my-day/screens/TodaysThree.tsx',
-        find: '<p data-streak={streak.days}>',
-        replace: '<p data-streak={0}>',
+        find: '<span data-streak={streak.days}>',
+        replace: '<span data-streak={0}>',
       },
     ],
   },

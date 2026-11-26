@@ -179,7 +179,7 @@ test('Arabic On is the workspace’s language for everyone who did not choose, a
     await expect(html, 'My day reads right to left').toHaveAttribute('dir', 'rtl');
     await expect(page, 'the tab title is in Arabic').toHaveTitle('يومي · دايركت للشركات');
     await expect(page.locator('[data-todays-three] h2').first(), "My day's headings are in Arabic").toContainText(
-      'ثلاثة اليوم',
+      'ثلاث مهام اليوم',
     );
     await expect(page.locator('[data-todays-three] [data-three-own]'), "Today's three is in Arabic").toHaveText(
       'من قوائم مهامك أنت',
@@ -224,7 +224,7 @@ test('Arabic On is the workspace’s language for everyone who did not choose, a
       await open(page, '/my-day');
       await expect(html, 'My day is English for the person who chose English').toHaveAttribute('lang', 'en');
       await expect(page.locator('[data-todays-three] h2').first(), 'My day’s headings are in English').toContainText(
-        "Today's three",
+        "Today's Three",
       );
       // a fresh sign-in on a browser that holds no cookie of theirs
       const fresh = await signedInAs(browser, admin);
@@ -296,7 +296,7 @@ test('Arabic On is the workspace’s language for everyone who did not choose, a
       await second.page.goto('/my-day');
       await reads(second.page, 'en', 'once Arabic is off the colleague who chose nothing reads English');
       await expect(second.page.locator('[data-todays-three] h2').first(), 'their My day is in English').toContainText(
-        "Today's three",
+        "Today's Three",
       );
     } finally {
       await second.context.close();

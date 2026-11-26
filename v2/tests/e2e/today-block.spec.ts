@@ -105,19 +105,26 @@ for (const width of [375, 1440]) {
     expect((await top.boundingBox())!.y, "Today's three sits above the Today block").toBeLessThan(
       (await block.boundingBox())!.y,
     );
-    // the card is titled Today and its groups never just that (QA-564): the four boxes of V661 — starred and overdue is Do now
-    await expect(block.locator('h2')).toHaveText('Today');
+    // Landing 53: the block is "The rest of today (N)" and opens by kind; one switch turns it to the four boxes of V661
+    await expect(block.locator('h2')).toHaveText('The rest of today (4)');
+    await expect(block, 'it opens grouped by kind').toHaveAttribute('data-rest-view', 'kind');
+    await expect(block.locator('[data-rest-kind] h3'), 'tasks with no type sit under Other').toHaveText(['Other 4']);
+    await block.locator('[data-rest-view-option="priority"]').click();
+    await expect(block).toHaveAttribute('data-rest-view', 'priority');
+    // its groups are never titled just "Today" (QA-564) — starred and overdue is Do now
     // a real space stands between a box's name and its count (Landing 34): "Do now 1", never "Do now1"
     await expect(block.locator('h3'), 'the boxes, in order, with the empty ones left out').toHaveText([
       'Do now 1',
-      'Quick or pass to someone 2',
+      'Quick or hand off 2',
       'Later 1',
     ]);
     expect(
       await block.locator('h3').evaluateAll((hs) => hs.map((h) => h.textContent)),
       'the space is a real one, in the text itself',
-    ).toEqual(['Do now 1', 'Quick or pass to someone 2', 'Later 1']);
-    expect(await block.getByText('Today', { exact: true }).count(), 'the word Today is the card title only').toBe(1);
+    ).toEqual(['Do now 1', 'Quick or hand off 2', 'Later 1']);
+    expect(await block.getByText('Today', { exact: true }).count(), 'nothing in the block is titled just Today').toBe(
+      0,
+    );
     await expect(block.locator('[data-today-group="do_now"]')).toContainText(`Late task ${t}`);
     await expect(block.locator('[data-today-group="quick"]')).toContainText(`Due task ${t}`);
     await expect(block.locator('[data-today-group="later"]')).toContainText(`Later task ${t}`);
@@ -160,5 +167,10 @@ test('with nothing due the block says so', async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 800 });
   await signIn(page, me.email, '/my-day');
   await hydrated(page);
-  await expect(page.locator('[data-today-block]')).toContainText('Nothing due today');
+  const block = page.locator('[data-today-block]');
+  await expect(block, 'by kind, as it opens').toContainText('Nothing due today');
+  // Landing 53: and in its other view, the four boxes
+  await block.locator('[data-rest-view-option="priority"]').click();
+  await expect(block).toHaveAttribute('data-rest-view', 'priority');
+  await expect(block, 'by priority').toContainText('Nothing due today');
 });
