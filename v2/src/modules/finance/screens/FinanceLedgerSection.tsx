@@ -10,6 +10,7 @@ import { SavedViewsBar } from '@/ui/SavedViewsBar';
 import { Select } from '@/ui/Select';
 import { toast } from '@/ui/Toast';
 import { LEDGER_KINDS, ledgerFilterQuery, ledgerReadArgs } from '../ledger';
+import { myClientsOf, NO_CLIENTS, type MyClients } from '../own-clients';
 import type { PeriodAsk } from '../period';
 import type { DealType } from '../deal-type';
 import type { LedgerCompany, LedgerFilter, LedgerRow } from '../types';
@@ -37,6 +38,7 @@ export function FinanceLedgerSection({
   initial,
   view,
   full,
+  own = false,
   ready,
 }: {
   ask: PeriodAsk;
@@ -44,6 +46,8 @@ export function FinanceLedgerSection({
   /** The open saved view's id, from the address — '' for the plain filtered view. */
   view: string;
   full: boolean;
+  /** Own on Finance (Landing 56): the person changes the entries of their own clients — asked once, below. */
+  own?: boolean;
   /** False holds the ledger read until the tiles are asked first (the read-order rule). */
   ready: boolean;
 }) {
@@ -137,6 +141,13 @@ export function FinanceLedgerSection({
     financeWrote();
     refetchAll();
   };
+  // Landing 56: at Own, which clients are theirs — asked once, after the ledger; Full needs no asking
+  const mineRead = useFinanceRead<unknown, 'finance_my_clients'>('finance_my_clients', {}, 'my-clients', ready && own);
+  const mine: MyClients = full
+    ? { all: true, partners: [] }
+    : own && mineRead.block.status === 'ready'
+      ? myClientsOf(mineRead.block.data)
+      : NO_CLIENTS;
   // Landing 47 (A5): set one row's deal type — the row's own number at the organisation it is RECORDED under (none for
   // a row recorded here that matches no organisation). Full on Finance; the database refuses anyone else, in words.
   const onSetDealType = async (row: LedgerRow, type: DealType | null, reason: string) => {
@@ -262,6 +273,7 @@ export function FinanceLedgerSection({
           onRetry={read.retry}
           onToggle={onToggle}
           onSetDealType={onSetDealType}
+          mine={mine}
         />
       </FinanceCard>
       {/* "Is it counted?" for the same period as the ledger above; it waits its turn like the ledger does */}

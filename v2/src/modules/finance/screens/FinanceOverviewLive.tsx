@@ -34,6 +34,7 @@ export function FinanceOverviewLive({
   ask,
   today,
   full,
+  mayType,
   mayImport,
   ledger,
   view,
@@ -41,6 +42,8 @@ export function FinanceOverviewLive({
   ask: PeriodAsk;
   today: string;
   full: boolean;
+  /** Own or Full on Finance (Landing 56): types an invoice, and changes the entries of the clients that are theirs. */
+  mayType: boolean;
   /** Whether this person imports files: the extra finance.import (Landing 40) — a head or an admin by role, or "Allowed". */
   mayImport: boolean;
   /** The ledger's filters, from the address (workstream B); the section below the Overview draws them. */
@@ -97,6 +100,7 @@ export function FinanceOverviewLive({
         ask={ask}
         today={today}
         full={full}
+        mayType={mayType}
         data={data}
         closer={closer}
         phoneView={phoneView}
@@ -129,14 +133,15 @@ export function FinanceOverviewLive({
           initial={ledger}
           view={view}
           full={full}
+          own={mayType && !full}
           // The ledger waits for the figures to be ASKED first, never for them to succeed (Landing 34): held until
           // they were "ready", a failed figures read left the ledger on "Loading" for good, with no Try again of its
           // own. Once the figures have settled — read or failed — the ledger and "Is it counted?" ask theirs.
           ready={ledgerMayAsk(period.block.status)}
         />
-        {/* Importing needs Finance full and the import extra (the import doors refuse anything less), so the section
-            is only here for a person who has both. */}
-        {full && mayImport ? <FinanceImportSection /> : null}
+        {/* Importing needs Finance at Own or above and the import extra (the import doors refuse anything less), so the
+            section is only here for a person who has both (Landing 56: the extra decides, not the level). */}
+        {mayType && mayImport ? <FinanceImportSection /> : null}
       </div>
     </div>
   );

@@ -2745,7 +2745,8 @@
       "commission_is_typed_by_hand": "نوع العمولة يُحدَّد للفاتورة المُدخلة يدويًا فقط ({detail})",
       "commission_needs_type": "حدّد أي عمولة هي",
       "commission_needs_proof": "العمولة تحتاج إلى إثباتها",
-      "edit_at_transaction_level": "الفاتورة الشهرية لا تُعدَّل ولا تُزال يدويًا: عدّل معاملاتها ({detail})"
+      "edit_at_transaction_level": "الفاتورة الشهرية لا تُعدَّل ولا تُزال يدويًا: عدّل معاملاتها ({detail})",
+      "own_clients_only": "تضيف وتعدّل قيود المالية لعملائك أنت فقط ({detail})"
     },
     "follow": {
       "not_allowed": "المراقبة غير متاحة لدورك."

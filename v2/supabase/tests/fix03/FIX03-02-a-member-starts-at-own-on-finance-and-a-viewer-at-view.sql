@@ -1,4 +1,7 @@
--- FIX03-02 — Finance follows the access each person has: a Team member starts at FULL, a Viewer at View.
+-- FIX03-02 — Finance follows the access each person has: a Team member starts at OWN, a Viewer at View.
+-- Landing 56 (the owner, 26 Nov 2026: "Own clients only" on Finance): the Team member role starts at Own on Finance
+-- and on a partner's Finance tab — it reads every figure and the ledger, and changes entries of its own clients
+-- (OWN-02); a change that asks for Full on Finance is a manager's. The history below is how it came to Full first.
 -- History: Landing 7 (owner decision 10 Nov 2026: "everyone can see what they have access to, and it can be edited in
 -- the Settings of the Commercial Workspace") made the level a setting and started Members and Viewers at View.
 -- Landing 34 (the test round of 19 Nov, item 5) moved the Team member role to None. Landing 34b (the owner, 21 Nov
@@ -16,17 +19,17 @@ select set_config('t.viewer', test.person('Test Viewer', 'viewer')::text, true);
 select set_config('t.p', (select id from finance.product where word = 'Direct Visas')::text, true);
 select set_config('t.pv', (select version from finance.product where id = current_setting('t.p')::uuid)::text, true);
 
--- a member: Full on both pages, reads, and makes a change that asks for Full on Finance
-select test.eq(authz.level_of(current_setting('t.mem')::uuid, 'finance'), 'full', 'a member starts at Full on Finance');
-select test.eq(authz.level_of(current_setting('t.mem')::uuid, 'partner_finance'), 'full', 'and on a partner''s Finance tab');
+-- a member: Own on both pages (Landing 56), and reads; a change that asks for Full on Finance is a manager's
+select test.eq(authz.level_of(current_setting('t.mem')::uuid, 'finance'), 'own', 'a member starts at Own on Finance');
+select test.eq(authz.level_of(current_setting('t.mem')::uuid, 'partner_finance'), 'own', 'and on a partner''s Finance tab');
 select test.eq(authz.level_of(current_setting('t.mgr')::uuid, 'finance'), 'full', 'a manager at Full');
 select test.as_person(current_setting('t.mem')::uuid);
 select test.runs('select api.finance_period(current_date - 30, current_date)', 'a member reads the finance figures');
 select test.runs($$select api.finance_unified_ledger(current_date - 30, current_date)$$, 'and the ledger');
-select test.eq((api.me() -> 'levels' ->> 'finance'), 'full', 'the member''s own levels say full, so the menu shows Finance');
-select test.eq((api.me() -> 'levels' ->> 'partner_finance'), 'full', 'and full on a partner''s Finance tab');
+select test.eq((api.me() -> 'levels' ->> 'finance'), 'own', 'the member''s own levels say own, so the menu shows Finance');
+select test.eq((api.me() -> 'levels' ->> 'partner_finance'), 'own', 'and own on a partner''s Finance tab');
 
--- a viewer: reads, and is refused the change a member makes — the no-supplier-cost flag asks for Full on Finance (FNS-01)
+-- a viewer: reads, and is refused a change — the no-supplier-cost flag asks for Full on Finance (FNS-01)
 select test.as_person(current_setting('t.viewer')::uuid);
 select test.runs('select api.finance_period(current_date - 30, current_date)', 'a viewer reads the finance figures');
 select test.runs($$select api.finance_unified_ledger(current_date - 30, current_date)$$, 'a viewer reads the ledger');
@@ -40,12 +43,16 @@ select test.eq(authz.level_of(current_setting('t.viewer')::uuid, 'partner_financ
 select test.eq((select no_supplier_cost from finance.product where id = current_setting('t.p')::uuid), false,
   'the refused change changed nothing');
 select test.as_person(current_setting('t.mem')::uuid);
+select test.raises(format('select api.finance_no_supplier_cost_set(%L, true, %s, %L)', current_setting('t.p'),
+                          current_setting('t.pv'), 'made up: a member tries'),
+  '42501', 'a member at Own is refused a change that asks for Full', 'access.needs_level');
+select test.as_person(current_setting('t.mgr')::uuid);
 select test.runs(format('select api.finance_no_supplier_cost_set(%L, true, %s, %L)', current_setting('t.p'),
                         current_setting('t.pv'), 'made up: visas carry no supplier cost'),
-  'a member makes the change a viewer is refused');
+  'a manager makes the change a viewer is refused');
 select test.as_owner();
 select test.eq((select no_supplier_cost from finance.product where id = current_setting('t.p')::uuid), true,
-  'and the member''s change is saved');
+  'and the manager''s change is saved');
 select test.as_person(current_setting('t.mgr')::uuid);
 select test.runs('select api.finance_period(current_date - 30, current_date)', 'a manager still reads the finance figures');
 

@@ -4,6 +4,7 @@ import { DataState } from '@/ui/DataState';
 import { Page } from '@/ui/shell/Page';
 import { ledgerFilterFromQuery } from '../ledger';
 import { periodAsk, riyadhDay } from '../period';
+import { mayTypeInvoice } from '../own-clients';
 import { mayImportFinance } from '../may-import';
 import { FinanceOverviewLive } from './FinanceOverviewLive';
 
@@ -46,6 +47,7 @@ export async function FinanceOverviewPage({ searchParams }: { searchParams: Prom
         ask={ask}
         today={today}
         full={(me.levels.finance ?? 'none') === 'full'}
+        mayType={mayTypeInvoice(me.levels.finance)}
         mayImport={mayImportFinance(me)}
         ledger={ledger}
         view={one(q.view) ?? ''}

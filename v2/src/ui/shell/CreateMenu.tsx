@@ -68,7 +68,8 @@ export const CREATE_ACTIONS: {
   },
   { key: 'client', page: 'clients', route: '/partners?new=1', icon: Building2, at: ['full'] },
   { key: 'supplier', page: 'suppliers_partners', route: '/suppliers?new=1', icon: Handshake, at: ['full'] },
-  { key: 'invoice', page: 'finance', route: '/finance/new', icon: Receipt, at: ['full'] },
+  // Landing 56: Own on Finance types an invoice too — for their own clients
+  { key: 'invoice', page: 'finance', route: '/finance/new', icon: Receipt, at: ['own', 'full'] },
   { key: 'achievement', page: 'kpis', route: '/kpis/achievements/new', icon: Trophy, at: ['own', 'full'] },
   // One tap to share an idea: the sheet opens on Idea, shared with the team by default — Only me is offered too
   // (FIX-03 F241); the shared list is My day narrowed to Ideas (Workspace or My team tab, Idea filter). Last, so

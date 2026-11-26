@@ -12,6 +12,7 @@ import { ReasonDialog } from '@/ui/ReasonDialog';
 import { Select } from '@/ui/Select';
 import { DEAL_TYPES, filterByDeal, sortByDeal, type DealFilter, type DealType } from '../deal-type';
 import { isCounted, ledgerRowsToCsv } from '../ledger';
+import { mayChangeEntryOf, type MyClients } from '../own-clients';
 import type { LedgerReport, LedgerRow } from '../types';
 import { DealPills, DealTypeTable } from './DealMarks';
 import { NUM, TD, TH } from './parts';
@@ -58,6 +59,7 @@ export function FinanceReport({
   onRetry,
   onToggle,
   onSetDealType,
+  mine,
 }: {
   report: LedgerReport | null;
   loading: boolean;
@@ -67,6 +69,8 @@ export function FinanceReport({
   onToggle?: (kind: LedgerToggle, row: LedgerRow, reason: string) => Promise<void>;
   /** Sets one row's deal type (null = let the rule decide again) with the reason typed; throws when refused. */
   onSetDealType?: (row: LedgerRow, type: DealType | null, reason: string) => Promise<void>;
+  /** At Own on Finance (Landing 56): the clients whose entries this person may change. */
+  mine?: MyClients;
 }) {
   const t = useTranslations();
   const locale = useLocale() as Locale;
@@ -190,7 +194,11 @@ export function FinanceReport({
   const filteredRows = filterByDeal(countedRows, dealFilter);
   const listedRows = dealSorted ? sortByDeal(filteredRows) : filteredRows;
   const maySetDeal = (r: LedgerRow) =>
-    report.canSetDealType === true && !!onSetDealType && !!r.number && (r.source === 'manual' || !!r.source_partner_id);
+    // Full sets any row's; at Own, a row recorded under a client that is theirs (finance.deal_type_set, Landing 56)
+    (report.canSetDealType === true || (!!mine && mayChangeEntryOf(mine, r.source_partner_id))) &&
+    !!onSetDealType &&
+    !!r.number &&
+    (r.source === 'manual' || !!r.source_partner_id);
   const askDeal = (row: LedgerRow) => {
     setDealRow(row);
     setDealChoice(row.deal_type_by === 'person' && row.deal_type ? row.deal_type : 'none');
@@ -730,7 +738,7 @@ export function FinanceReport({
           }}
         />
       ) : null}
-      {onSetDealType && report.canSetDealType ? (
+      {onSetDealType && (report.canSetDealType || !!mine) ? (
         <ReasonDialog
           open={dealAsking}
           onOpenChange={setDealAsking}

@@ -9,8 +9,8 @@ export const sabotages = [
     edits: [
       {
         file: OVERVIEW,
-        find: '          full ? (\n            <Link',
-        replace: '          full && !full ? (\n            <Link',
+        find: '          mayType ? (\n            <Link',
+        replace: '          mayType && !mayType ? (\n            <Link',
       },
     ],
   },
@@ -21,8 +21,8 @@ export const sabotages = [
     edits: [
       {
         file: OVERVIEW,
-        find: '          full ? (\n            <Link',
-        replace: '          full || !full ? (\n            <Link',
+        find: '          mayType ? (\n            <Link',
+        replace: '          mayType || !mayType ? (\n            <Link',
       },
     ],
   },

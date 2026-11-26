@@ -28,7 +28,7 @@ select set_config('t.r1', (select id::text from finance.receipt where invoice_id
 select test.as_person(current_setting('t.am')::uuid);
 select test.raises(format('select api.finance_row_add(%L, %L, %L)', 'receipt',
   jsonb_build_object('invoice_id', current_setting('t.i2'), 'amount_sar', 100, 'paid_on', current_setting('t.t'))::text, 'made up'),
-  '42501', 'Own on Finance types no receipt', 'access.needs_level');
+  '42501', 'Own on Finance types no receipt on a client that is not theirs', 'finance.own_clients_only'); -- Landing 56
 select test.as_person(current_setting('t.head')::uuid);
 select set_config('t.add', api.finance_row_add('receipt',
   jsonb_build_object('invoice_id', current_setting('t.i2'), 'amount_sar', 100, 'paid_on', (current_setting('t.t')::date - 5)::text,

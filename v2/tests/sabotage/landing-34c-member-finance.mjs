@@ -73,8 +73,8 @@ export const sabotages = [
     edits: [
       {
         file: OVERVIEW,
-        find: '          full ? (\n            <Link',
-        replace: '          full && !full ? (\n            <Link',
+        find: '          mayType ? (\n            <Link',
+        replace: '          mayType && !mayType ? (\n            <Link',
       },
     ],
   },
@@ -86,7 +86,7 @@ export const sabotages = [
     edits: [
       {
         file: NEW_PAGE,
-        find: "const full = (me.levels.finance ?? 'none') === 'full';",
+        find: 'const full = mayTypeInvoice(me.levels.finance);',
         replace: "const full = (me.levels.finance ?? 'none') !== 'none';",
       },
     ],
