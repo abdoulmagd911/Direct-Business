@@ -87,7 +87,24 @@ offered exactly where the database allows the save.
 
 ## Verification (this landing's head, on the builder's machine — a cloud container, local stack, made-up data)
 
-Filled in when the full local runs finish (the next commit on this branch).
+| Check | Result |
+| --- | --- |
+| Base equals `v2/main` (`20b69233`) before editing | yes |
+| SQL suite, a fresh database from zero, plain Postgres 16 | 398 passed, 0 failed (397 + `OWN-01`) |
+| Sabotage — every SQL plant (641, the 6 new ones among them) | all red as they must be, after one older plant followed its line (below) |
+| Unit tests | 1,963 passed (1,949 + 14) |
+| The 7 new unit plants | red as they must be |
+| `pnpm typecheck` · `pnpm lint` · `pnpm format:check` · `node scripts/checks/run.mjs` | exit 0 · exit 0 · exit 0 · 19 green |
+| The new browser test, on a production build against the local Supabase stack | passed |
+
+## CI run on the first push — two red jobs, and their fixes (second and third commits)
+
+- **The browser suite: 623 passed, 2 failed** — one test in both languages (`app-settings.alone.spec.ts`, "the other
+  items are still there"): the Create menu offered New client and New supplier at Full only, so a team member at Own
+  lost them, though adding an organisation is theirs. The menu now offers both at Own and Full.
+- **The database sabotage job: one older plant, `anyone-logs-an-activity`**, takes the write check out of
+  `partner.activity_log` by its exact text, and this landing changed that line. The plant follows the new text; it
+  is red for its own reason again (`a viewer logs nothing`).
 
 ## Live checks
 
