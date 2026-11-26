@@ -160,6 +160,8 @@ function api.import_code_check(p_text text) execute authenticated
 function api.import_expense_preview(p_partner uuid, p_rows jsonb) execute authenticated
 function api.import_ledger(p_partner uuid, p_from date, p_to date) execute authenticated
 function api.individual_add(p_name text, p_reason text) execute authenticated
+function api.kpi_pace(p_month date) execute authenticated
+function api.kpi_responsible_set(p_plan uuid, p_category uuid, p_person uuid) execute authenticated
 function api.list(p_list text, p_include_retired boolean) execute authenticated
 function api.list_remove(p_list text, p_id uuid, p_reason text) execute authenticated
 function api.list_retire(p_list text, p_id uuid, p_replacement uuid, p_reason text) execute authenticated
@@ -574,6 +576,12 @@ function perf.category_retire(p_id uuid, p_replacement uuid, p_reason text) exec
 function perf.category_save(p_id uuid, p_plan uuid, p_values jsonb, p_version integer) execute authenticated
 function perf.category_usage(p_id uuid) execute authenticated
 function perf.finance_achievements(p_from date, p_to date) execute authenticated
+function perf.kpi_pace(p_month date) execute authenticated
+function perf.kpi_responsible_max() execute authenticated
+function perf.kpi_responsible_set(p_plan uuid, p_category uuid, p_person uuid) execute authenticated
+function perf.pace_bands() execute authenticated
+function perf.pace_pct(p_actual numeric, p_target numeric, p_share numeric, p_rate boolean) execute authenticated
+function perf.pace_status(p_pct integer, p_target numeric, p_share numeric, p_rate boolean) execute authenticated
 function perf.partner_achievements(p_partner uuid) execute authenticated
 function perf.plan_get(p_id uuid) execute authenticated
 function perf.plan_open(p_department uuid, p_year integer, p_name text) execute authenticated
@@ -581,6 +589,7 @@ function perf.plans(p_department uuid) execute authenticated
 function perf.target_delete(p_id uuid, p_reason text) execute authenticated
 function perf.target_save(p_id uuid, p_plan uuid, p_values jsonb, p_version integer) execute authenticated
 function perf.targets(p_plan uuid) execute authenticated
+function perf.working_days(p_from date, p_to date) execute authenticated
 function pipeline.board(p_entity text, p_filter jsonb) execute authenticated
 function pipeline.bulk_assign(p_entity text, p_ids uuid[], p_owner uuid, p_reason text) execute authenticated
 function pipeline.card(p_entity text, p_id uuid) execute authenticated

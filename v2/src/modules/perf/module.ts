@@ -28,6 +28,8 @@ export default defineModule({
     { key: 'plan', table: 'perf.plan', page: 'settings.performance', label: 'nav.settings.performance' },
     // A plan's target for one category in one month (FIX-23): the targets screen's rows, read and written there.
     { key: 'target', table: 'perf.target', page: 'settings.performance', label: 'nav.settings.performance' },
+    // Who is Responsible for a plan's category KPI (Landing 54): read on Reports → KPI pace, set with Full on KPIs.
+    { key: 'kpi_responsible', table: 'perf.kpi_responsible', page: 'kpis', label: 'pages.kpiPace.responsible' },
     {
       key: 'achievement_category',
       table: 'perf.achievement_category',

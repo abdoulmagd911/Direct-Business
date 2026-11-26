@@ -1367,6 +1367,18 @@
       "rule_only": false
     },
     {
+      "key": "kpi_responsible",
+      "table": "perf.kpi_responsible",
+      "page": "kpis",
+      "owners": null,
+      "list": false,
+      "private": false,
+      "visible": null,
+      "level": null,
+      "history": false,
+      "rule_only": false
+    },
+    {
       "key": "match_pin",
       "table": "partner.match_pin",
       "page": "clients",

@@ -442,6 +442,8 @@ export type Database = {
       import_expense_preview: { Args: { p_partner: string; p_rows: Json }; Returns: Json };
       import_ledger: { Args: { p_from?: string; p_partner: string; p_to?: string }; Returns: Json };
       individual_add: { Args: { p_name: string; p_reason?: string }; Returns: Json };
+      kpi_pace: { Args: { p_month?: string }; Returns: Json };
+      kpi_responsible_set: { Args: { p_category: string; p_person: string; p_plan: string }; Returns: Json };
       list: { Args: { p_include_retired?: boolean; p_list: string }; Returns: Json };
       list_remove: { Args: { p_id: string; p_list: string; p_reason?: string }; Returns: Json };
       list_retire: { Args: { p_id: string; p_list: string; p_reason: string; p_replacement: string }; Returns: Json };

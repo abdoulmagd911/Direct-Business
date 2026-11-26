@@ -1339,6 +1339,39 @@
         "result": "Result",
         "number": "Number"
       }
+    },
+    "kpiPace": {
+      "title": "KPI pace",
+      "kpis": "KPIs",
+      "year": "Year",
+      "previousMonth": "Previous month",
+      "nextMonth": "Next month",
+      "today": "Today",
+      "responsible": "Responsible",
+      "noResponsible": "Not set",
+      "monthlyTarget": "Monthly target",
+      "actualToDate": "Actual to date",
+      "pace": "Pace",
+      "target": "Target",
+      "actual": "Actual",
+      "status": {
+        "on_track": "On track",
+        "at_risk": "At risk",
+        "behind": "Behind",
+        "not_started": "Not started",
+        "not_measured": "Not measured"
+      },
+      "dealValueOf": "{name} — deal value (SAR)",
+      "initiatives": "Initiatives",
+      "initiativeCount": "{name} ({count})",
+      "noInitiatives": "None linked yet",
+      "viewThem": "View them",
+      "edit": "Edit {name}",
+      "showOnChart": "Show {name} on the chart",
+      "chartLabel": "Target and actual for {name}, day by day",
+      "daysPassed": "{passed} of {total} working days passed · {share}% of the target due",
+      "empty": "No KPI has a target for this month yet",
+      "setTargets": "Set targets"
     }
   },
   "entity": {
@@ -2841,6 +2874,10 @@
       "category_invalid": "That is not a category of this plan",
       "invalid": "That target value is not allowed: {detail}",
       "taken": "That category already has a target for that month"
+    },
+    "kpi": {
+      "responsible_limit": "A person is Responsible for at most {detail} KPIs in a year",
+      "responsible_invalid": "Choose a person from the team"
     }
   },
   "notifications": {
