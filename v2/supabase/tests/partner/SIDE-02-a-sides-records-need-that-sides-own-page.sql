@@ -38,7 +38,12 @@ select test.raises(format('select api.identifier_remove(%L, %L)', current_settin
 select test.ok((api.partner_status_set(current_setting('t.p')::uuid, 'supplier_partner', 'active') ->> 'id') is not null,
   'the Supplier & partner side is theirs to set');
 -- and the page without the capability: a member with Full on Clients sets no status on a Client side they do not own
-select test.as_person(test.person('Test Member', 'member'));
+-- Landing 55: a team member starts at Own on the organisation pages; this one is given Full by a person's own setting
+select test.as_owner();
+select set_config('t.member', test.person('Test Member', 'member')::text, true);
+insert into core.person_page_level (person_id, page_key, level, reason)
+values (current_setting('t.member')::uuid, 'clients', 'full', 'made up: Full on Partners');
+select test.as_person(current_setting('t.member')::uuid);
 select test.raises(format('select api.partner_status_set(%L, %L, %L)', current_setting('t.p'), 'client', 'active'),
   '42501', 'the Clients page without its assign capability sets no one else''s Client status', 'access.needs_capability');
 select test.as_person(current_setting('t.mgr')::uuid);

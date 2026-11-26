@@ -6,6 +6,13 @@
 select set_config('t.head', test.person('Test Head', 'head')::text, true);
 select set_config('t.am1', test.person('Test Account Manager', 'member')::text, true);
 select set_config('t.am2', test.person('Test Relationship Owner', 'member')::text, true);
+-- Landing 55: a team member starts at Own on the organisation pages. What this test pins is unchanged, so its
+-- member is given Full there by a person's own setting — what the role gave when the test was written.
+insert into core.person_page_level (person_id, page_key, level, reason)
+values (current_setting('t.am1')::uuid, 'clients', 'full', 'made up: Full on Partners'),
+       (current_setting('t.am1')::uuid, 'suppliers_partners', 'full', 'made up: Full on Suppliers & partners'),
+       (current_setting('t.am2')::uuid, 'clients', 'full', 'made up: Full on Partners'),
+       (current_setting('t.am2')::uuid, 'suppliers_partners', 'full', 'made up: Full on Suppliers & partners');
 select test.as_person(current_setting('t.am1')::uuid);
 select set_config('t.pid', api.partner_create(jsonb_build_object('trade_name_en', 'Made Up Status',
   'sides', jsonb_build_array(jsonb_build_object('side', 'client', 'type', 'corporate', 'owner_id', current_setting('t.am1'))))) ->> 'id', true);

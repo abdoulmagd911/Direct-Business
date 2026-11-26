@@ -66,8 +66,9 @@ export const CREATE_ACTIONS: {
     at: ['own', 'full'],
     dialog: openLogActivity,
   },
-  { key: 'client', page: 'clients', route: '/partners?new=1', icon: Building2, at: ['full'] },
-  { key: 'supplier', page: 'suppliers_partners', route: '/suppliers?new=1', icon: Handshake, at: ['full'] },
+  // Landing 55: Own adds an organisation too — the one who adds it is its owner
+  { key: 'client', page: 'clients', route: '/partners?new=1', icon: Building2, at: ['own', 'full'] },
+  { key: 'supplier', page: 'suppliers_partners', route: '/suppliers?new=1', icon: Handshake, at: ['own', 'full'] },
   { key: 'invoice', page: 'finance', route: '/finance/new', icon: Receipt, at: ['full'] },
   { key: 'achievement', page: 'kpis', route: '/kpis/achievements/new', icon: Trophy, at: ['own', 'full'] },
   // One tap to share an idea: the sheet opens on Idea, shared with the team by default — Only me is offered too
