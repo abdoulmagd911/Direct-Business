@@ -9,13 +9,13 @@ export const sabotages = [
   {
     name: 'e2e-l54-reports-has-no-way-to-kpi-pace',
     breaks: [E2E],
-    expect: 'data-report-kpi-pace',
+    expect: 'Reports has the way to KPI pace',
     edits: [{ file: REPORTS, find: '              data-report-kpi-pace\n', replace: '' }],
   },
   {
     name: 'e2e-l54-today-is-not-marked',
     breaks: [E2E],
-    expect: 'data-pace-today',
+    expect: 'the current month marks today',
     edits: [{ file: SCREEN, find: '            data-pace-today\n', replace: '' }],
   },
   {

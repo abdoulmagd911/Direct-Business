@@ -37,6 +37,7 @@ test('KPI pace: a month’s KPIs with their pace and status, for each role, wide
     const m = await signedInAs(browser, seed.manager, `/reports?month=${seed.last}`);
     const mp = m.page;
     await hydrated(mp);
+    await expect(mp.locator('[data-report-kpi-pace]'), 'Reports has the way to KPI pace').toBeVisible();
     await mp.locator('[data-report-kpi-pace]').click();
     await expect(mp).toHaveURL(new RegExp(`/reports/kpi-pace\\?month=${seed.last}$`));
     await expect(mp.getByRole('heading', { level: 1, name: 'KPI pace' })).toBeVisible();
@@ -80,7 +81,7 @@ test('KPI pace: a month’s KPIs with their pace and status, for each role, wide
     // the year selector keeps the month; the current month marks today
     await expect(mp.locator('[data-pace-years] a[aria-current="true"]')).toHaveText(seed.last.slice(0, 4));
     await mp.goto('/reports/kpi-pace');
-    await expect(mp.locator('[data-pace-today]')).toContainText('Today');
+    await expect(mp.locator('[data-pace-today]'), 'the current month marks today').toContainText('Today');
     await expect(card(mp, 'PROBLEM').locator('[data-pace-target]')).toHaveText('6');
     await expect(card(mp, 'PROBLEM').locator('[data-pace-actual]')).toHaveText('0');
     await shot(mp, 'manager-this-month-1440');
