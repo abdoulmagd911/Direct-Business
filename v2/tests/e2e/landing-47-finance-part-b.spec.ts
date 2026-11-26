@@ -443,14 +443,16 @@ test('6 · the speed gate: the four new Finance reads answer in under 3 s in tot
         expect(total, `the Finance reads as ${role} took ${total} ms in total`).toBeLessThan(3000);
         out[role]!.total = total;
       }
-      // setting a deal type is for Full on Finance: a viewer (View) and a person with no role are refused
+      // setting a deal type is for Full on Finance, or for Own on a row of their own client (Landing 56): a viewer
+      // (View) and a person with no role are refused, and so is a team member here — a row under no organisation is
+      // nobody's own
       const set = await callAs(who.context, 'finance_deal_type_set', {
         p_partner: null,
         p_number: 'MADE-UP-NOT-THERE',
         p_type: 'tender',
         p_reason: 'made up e2e',
       });
-      if (role === 'viewer' || role === 'none')
+      if (role === 'viewer' || role === 'none' || role === 'member')
         expect(set.status, `finance_deal_type_set as ${role}: refused`).toBe(403);
       else expect(set.status, `finance_deal_type_set as ${role}: allowed, and the row is not there`).not.toBe(403);
       console.log(`[l47-speed] ${role} · ${JSON.stringify(out[role])}`);
