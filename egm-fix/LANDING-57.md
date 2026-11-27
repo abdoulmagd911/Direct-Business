@@ -66,3 +66,19 @@ link to Settings (V444); and open tasks with no due day appear in "The rest of t
 
 - The 11 unit sabotages and the 4 browser sabotages: each red with its own words.
 - Full checks, 27 Nov: types, lint, format, the 19 repo checks, generated types, registry — green; unit 1,986 passed; database 399 passed; browser 626 passed, 11 skipped (the time-of-day ones), 0 failed; sabotage 897, 0 failures; tree clean.
+
+## Follow-up — the main checks after the merge (27 Nov)
+
+The checks on `v2/main` after the merge (run 1666) were 11 of 13: in two browser sabotage groups one sabotage each
+stayed green — `a-link-keeps-its-long-title-at-full-width` (group 4) and `a-link-breaks-no-long-word` (group 5), both
+aimed at `tests/e2e/long-titles-fit-the-phone.spec.ts`.
+
+- **The cause.** That test signs in as an admin. Since this landing an admin's Tasks opens on Team, where their own
+  made-up tasks are not drawn, so the Tasks part measured nothing. The Partners part had measured nothing for longer:
+  its rows are drawn just after the page is ready, and the test looked before they came. With nothing to measure the
+  test passed under any sabotage. The pull request's checks run only the sabotages near the files it changes, so this
+  showed only on main.
+- **The fix (test only, the app is unchanged).** Tasks is opened at `/tasks?view=my_work`, the person's own tasks; the
+  test waits for each title to be drawn before measuring it, and a title that never appears now fails the test instead
+  of passing it.
+- **Checked.** The test passes; both sabotages turn it red again.
