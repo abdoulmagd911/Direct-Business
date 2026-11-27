@@ -144,7 +144,8 @@ describe('a save that failed is said in the form, and nothing typed is lost', ()
     await press();
     expect(alert()).toBeNull();
     expect(closed).toHaveBeenCalledTimes(1);
-    expect(rpcMock.mock.calls.map((c) => c[0])).toEqual(['task_create', 'task_create']);
+    // the save is tried twice; once it goes through at Default, the task is read once to say who owns it (Landing 57)
+    expect(rpcMock.mock.calls.map((c) => c[0])).toEqual(['task_create', 'task_create', 'task']);
   });
 });
 
