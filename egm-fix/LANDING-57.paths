@@ -1,0 +1,13 @@
+docs/v2/landings/LANDING-57.md
+v2/messages/ar.json
+v2/messages/en.json
+v2/src/app/(app)/tasks/page.tsx
+v2/src/modules/tasks/rules.ts
+v2/src/modules/tasks/screens/QuickAdd.tsx
+v2/src/modules/tasks/screens/TaskListScreen.tsx
+v2/tests/e2e/landing-57-tasks-open-where-the-work-is.spec.ts
+v2/tests/sabotage/landing-57-e2e.mjs
+v2/tests/sabotage/landing-57.mjs
+v2/tests/unit/tasks/landing-34-add-task-says-a-failed-save-and-opens-before-the-list.test.tsx
+v2/tests/unit/tasks/landing-57-tasks-open-where-the-work-is.test.tsx
+v2/tests/unit/tasks/the-tasks-look-one-pill-and-overdue-is-a-date.test.tsx
