@@ -94,7 +94,8 @@ const times = (s: string, re: RegExp) => s.match(re)?.length ?? 0;
 const countAt = (html: string, hook: string) => Number(new RegExp(`${hook}[^>]*data-count="(\\d+)"`).exec(html)?.[1]);
 
 describe('a task on the list shows exactly one status pill', () => {
-  const html = draw({ scope: 'my_work' });
+  // Show done on (Landing 57), so the done row is drawn too and its pill can be read
+  const html = draw({ scope: 'my_work', done: true });
   const rowOf = (number: string) => piece(html, `data-task-row="${number}"`);
 
   it('a blocked, overdue, prioritised task draws one pill, and it says Blocked', () => {
@@ -192,7 +193,8 @@ describe('the board’s columns and the list’s groups count the same tasks', (
   });
 
   it('the list’s group rows carry the same counts (a group with no task is not drawn)', () => {
-    const html = draw({ scope: 'my_work' });
+    // with Show done on (Landing 57), the list draws every row the board does
+    const html = draw({ scope: 'my_work', done: true });
     for (const k of ['not_started', 'in_progress', 'blocked', 'done'])
       expect(countAt(html, `data-task-group="${k}"`), k).toBe(1);
     expect(html).not.toContain('data-task-group="cancelled"');

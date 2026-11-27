@@ -29,12 +29,15 @@ import {
   TASK_SORTS,
   dueState,
   filtersHref,
+  hidesClosed,
+  isClosedRow,
   keepRow,
   phoneScopes,
   riyadhDay,
   defaultViewOpens,
   searchBoxOnAddress,
   searchHref,
+  savedQuery,
   searchTerm,
   sortRows,
   viewFilters,
@@ -113,7 +116,23 @@ export function TaskListScreen({ data }: { data: TaskListData }) {
   // the whole tab: no chip, no search, no saved view, and not past the first page of 200; Past work has none.
   const counts = workCount(rows, today, me.person.id);
   const wholeTab = !!list && !list.more && !isFiltered(f) && !f.starred && !f.escalated;
-  const groups = statusGroups(rows, lookups.statuses);
+  // Landing 57: the list draws open tasks only unless asked (`hidesClosed`); the count line above still counts them all
+  const putAway = hidesClosed(f);
+  // A task finished here (ticked on this list) stays on screen, saying Done, until the list is left or reloaded —
+  // it never vanishes under the person's finger (V509). Only tasks first seen finished are put away.
+  const listKey = filtersHref(f);
+  const openIds = rows.filter((r) => !isClosedRow(r)).map((r) => r.id);
+  const [seenOpen, setSeenOpen] = useState<{ key: string; ids: string[] }>({ key: listKey, ids: openIds });
+  if (seenOpen.key !== listKey) setSeenOpen({ key: listKey, ids: openIds });
+  else if (openIds.some((id) => !seenOpen.ids.includes(id)))
+    setSeenOpen({ key: listKey, ids: [...new Set([...seenOpen.ids, ...openIds])] });
+  const keptHere = (r: (typeof rows)[number]) => seenOpen.key === listKey && seenOpen.ids.includes(r.id);
+  const hidden = (r: (typeof rows)[number]) => putAway && isClosedRow(r) && !keptHere(r);
+  const closedCount = rows.filter((r) => isClosedRow(r) && !keptHere(r)).length;
+  const listed = rows.filter((r) => !hidden(r));
+  // the rows a person can see and select: the list's drawn ones, or every row on the board and the calendar
+  const visible = layout === 'list' ? listed : rows;
+  const groups = statusGroups(listed, lookups.statuses);
   const groupTitle = (g: (typeof groups)[number]) =>
     g.kind === 'blocked'
       ? t('pages.tasks.blocked')
@@ -125,18 +144,19 @@ export function TaskListScreen({ data }: { data: TaskListData }) {
   // FIX-01 (F100/F138, P1b): row selection and the bulk bar stay with whoever may give work to others
   // (`tasks.assign`) — a member's own-task bulk-assign is the partners lists', not this list's.
   const canBulk = me.capabilities.includes('tasks.assign');
+  // Landing 57: an empty My work for someone who gives work to others says where the work is — Team — and goes there
+  const emptyMyWorkPointsToTeam = f.scope === 'my_work' && me.capabilities.includes('tasks.assign');
   const [selected, setSelected] = useState<string[]>([]);
   const [bulkOpen, setBulkOpen] = useState(false);
   // The selection is of the rows on screen (owner 13 Nov): another view, chip, search, sort or layout starts it again,
   // and a row that left the list (done, given away, changed by someone else) leaves it — Bulk assign never acts on a
   // task no longer shown, and Select all reads only what is shown.
-  const listKey = filtersHref(f);
   const [seenListKey, setSeenListKey] = useState(listKey);
   if (listKey !== seenListKey) {
     setSeenListKey(listKey);
     setSelected([]);
   }
-  const onScreen = new Set(rows.map((r) => r.id));
+  const onScreen = new Set(visible.map((r) => r.id));
   const shown = selected.filter((id) => onScreen.has(id));
   const toggleRow = (id: string, on: boolean) =>
     setSelected((s) => (on ? [...s.filter((x) => x !== id), id] : s.filter((x) => x !== id)));
@@ -269,7 +289,7 @@ export function TaskListScreen({ data }: { data: TaskListData }) {
         page="tasks"
         fixed={[{ key: 'all', label: t('pages.tasks.views.all') }]}
         current={view}
-        query={{ ...f } as unknown as Record<string, unknown>}
+        query={savedQuery(f)}
         onOpen={openView}
         canShare={me.levels.tasks === 'full'}
         // FIX-12 (F046): the labelled default opens first on a fresh load, as Finance and My day already do — but only
@@ -378,6 +398,17 @@ export function TaskListScreen({ data }: { data: TaskListData }) {
               className="w-44"
             />
             <LayoutSwitch filters={f} />
+            {(f.layout ?? 'list') === 'list' && !f.status && (f.done || closedCount > 0) ? (
+              // Landing 57: done and cancelled tasks are put away on the list; one button brings them back
+              <Button
+                variant="ghost"
+                onClick={() => go({ done: f.done ? undefined : true })}
+                aria-pressed={!!f.done}
+                data-task-show-done={f.done ? 'on' : 'off'}
+              >
+                {f.done ? t('pages.tasks.look.hideDone') : t('pages.tasks.look.showDone', { count: closedCount })}
+              </Button>
+            ) : null}
           </>
         )}
       </div>
@@ -401,6 +432,18 @@ export function TaskListScreen({ data }: { data: TaskListData }) {
           onRetry={retry}
           retryLabel={t('common.tryAgain')}
         />
+      ) : rows.length > 0 && listed.length === 0 && layout === 'list' ? (
+        // Landing 57: every task here is finished — say so, never "No tasks yet", and offer them back
+        <DataState
+          kind="empty"
+          icon={<ListChecks />}
+          message={t('pages.tasks.allDone')}
+          action={
+            <Button variant="secondary" onClick={() => go({ done: true })} data-empty-show-done>
+              {t('pages.tasks.look.showDone', { count: closedCount })}
+            </Button>
+          }
+        />
       ) : rows.length === 0 && layout !== 'calendar' ? (
         // the list and the board share the empty state (15 Nov: one line and Add task); the calendar keeps its month
         <DataState
@@ -413,13 +456,22 @@ export function TaskListScreen({ data }: { data: TaskListData }) {
                 ? 'pages.tasks.empty.starred'
                 : isFiltered(f)
                   ? 'pages.tasks.emptyFiltered'
-                  : `pages.tasks.empty.${f.scope}`,
+                  : emptyMyWorkPointsToTeam
+                    ? 'pages.tasks.empty.my_work_team'
+                    : `pages.tasks.empty.${f.scope}`,
           )}
           action={
             atLeastOwn(me.levels.tasks) && f.scope !== 'past' && !isFiltered(f) && !f.starred && !f.escalated ? (
-              <Button variant="primary" icon={<Plus />} onClick={() => setAdding(true)} data-empty-add-task>
-                {t('pages.tasks.add.open')}
-              </Button>
+              <div className="flex flex-wrap justify-center gap-2">
+                {emptyMyWorkPointsToTeam ? (
+                  <Button variant="secondary" onClick={() => go({ scope: 'team' })} data-empty-open-team>
+                    {t('pages.tasks.look.openTeam')}
+                  </Button>
+                ) : null}
+                <Button variant="primary" icon={<Plus />} onClick={() => setAdding(true)} data-empty-add-task>
+                  {t('pages.tasks.add.open')}
+                </Button>
+              </div>
             ) : undefined
           }
         />
@@ -432,11 +484,11 @@ export function TaskListScreen({ data }: { data: TaskListData }) {
           ) : (
             // the card is its own container (@container): a row lays its columns out only where the CARD has the room
             <div className="@container flex min-w-0 flex-col gap-3 [&>ul]:overflow-hidden [&>ul]:shadow-1">
-              {canBulk && rows.length ? (
+              {canBulk && visible.length ? (
                 <div className="flex items-center gap-2 px-1 text-sm text-muted" data-task-select-all>
                   <Checkbox
-                    checked={shown.length === 0 ? false : shown.length === rows.length ? true : 'indeterminate'}
-                    onCheckedChange={(on) => setSelected(on ? rows.map((r) => r.id) : [])}
+                    checked={shown.length === 0 ? false : shown.length === visible.length ? true : 'indeterminate'}
+                    onCheckedChange={(on) => setSelected(on ? visible.map((r) => r.id) : [])}
                     label={t('table.selectAll')}
                     id="task-select-all"
                   />

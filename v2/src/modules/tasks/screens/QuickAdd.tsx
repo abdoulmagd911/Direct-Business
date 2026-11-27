@@ -9,6 +9,7 @@ import { Dialog } from '@/ui/Dialog';
 import { Field } from '@/ui/Field';
 import { Input, Textarea } from '@/ui/Input';
 import { Select } from '@/ui/Select';
+import { toast } from '@/ui/Toast';
 import type { OrgAnswer } from '@/modules/org/types';
 import type { ListEntry } from '@/modules/partners/types';
 import { nameOf } from '@/modules/org/types';
@@ -144,6 +145,21 @@ export function QuickAddForm({
     return fromNote ? withRefusal(w, t('pages.myDay.turn.refused.task')) : w;
   };
 
+  const sayWhoOwnsIt = async (id: string) => {
+    let owner: string | null | undefined;
+    try {
+      owner = ((await rpc('task', { p_id: id })) as { owner_id?: string | null } | null)?.owner_id;
+    } catch {
+      return; // the task was added and said so; this second line is a courtesy, never a failure
+    }
+    if (!owner || owner === me.person.id) return;
+    const person = org?.people.find((p) => p.id === owner);
+    toast.done(
+      t('pages.tasks.add.wentTo', { name: person ? nameOf(person, locale) : t('pages.tasks.add.someoneElse') }),
+      { description: t('pages.tasks.add.wentToWhere') },
+    );
+  };
+
   const save = async () => {
     const r = quickAddValues(read ? { ...f, due: read.day } : f, me.person.id, { ownerRequired });
     if ('error' in r) {
@@ -185,6 +201,9 @@ export function QuickAddForm({
         after: (res) => {
           onClose();
           if (res) onAdded?.({ id: res.id, number: res.number });
+          // Landing 57: left at Default, the database names the owner (V464) — often the project's owner or the
+          // client's account manager, not the person adding it. Say who, so the task is not "lost" from My work.
+          if (res && !fromNote && !r.values.owner_id) void sayWhoOwnsIt(res.id);
         },
       },
     );

@@ -62,6 +62,16 @@ export type Scope = (typeof SCOPES)[number];
 export function phoneScopes(capabilities: readonly string[]): readonly Scope[] {
   return capabilities.includes('tasks.assign') ? ['my_work', 'team'] : ['my_work', 'owned'];
 }
+
+/**
+ * Landing 57 — the tab the list opens on when the address names none. Someone who gives work to others
+ * (`tasks.assign`: a manager, the owner's admin account) opens on Team: their My work was empty or short (the admin
+ * account owns no task, V444; a task left at Default goes to the project's owner or the client's account manager,
+ * V464), so the list read as "Tasks do not work". Everyone else opens on My work, as before.
+ */
+export function homeScope(capabilities: readonly string[]): Scope {
+  return capabilities.includes('tasks.assign') ? 'team' : 'my_work';
+}
 export const STATUS_CHIPS = ['open', 'blocked', 'done', 'cancelled'] as const;
 export type StatusChipKey = (typeof STATUS_CHIPS)[number];
 export const DUE_CHIPS = ['overdue', 'today', 'week', 'none'] as const;
@@ -132,6 +142,11 @@ export type TaskFilters = {
   priority?: string;
   /** FIX-01: the list's sort; absent, the server's own order stands. */
   sort?: TaskSortKey;
+  /** Landing 57: the list also shows done and cancelled tasks (`?done=1`); without it the list shows open ones only. */
+  done?: boolean;
+  /** Landing 57: the tab this person opens on (`homeScope`); never in the address — the address names a tab only when
+   * it is not this one. Absent means My work. */
+  home?: Scope;
 };
 
 const MONTH = /^\d{4}-(0[1-9]|1[0-2])$/;
@@ -142,14 +157,17 @@ const oneOf = <T extends string>(list: readonly T[], v: string | undefined): T |
   v !== undefined && (list as readonly string[]).includes(v) ? (v as T) : undefined;
 
 /** The list's state lives in the address (shareable, Back works): anything unknown is dropped, never guessed. */
-export function parseFilters(params: Record<string, string | string[] | undefined>): TaskFilters {
+export function parseFilters(
+  params: Record<string, string | string[] | undefined>,
+  home: Scope = 'my_work',
+): TaskFilters {
   const partner = one(params.partner);
   const project = one(params.project);
   const q = one(params.q)?.trim().slice(0, 100);
   const owner = one(params.owner);
   const priority = one(params.priority);
   return {
-    scope: oneOf(SCOPES, one(params.view)) ?? 'my_work',
+    scope: oneOf(SCOPES, one(params.view)) ?? home,
     layout: oneOf(LAYOUTS, one(params.layout)),
     month: MONTH.test(one(params.month) ?? '') ? one(params.month) : undefined,
     status: oneOf(STATUS_CHIPS, one(params.status)),
@@ -162,6 +180,8 @@ export function parseFilters(params: Record<string, string | string[] | undefine
     owner: owner && UUID.test(owner) ? owner : undefined,
     priority: priority && KEY.test(priority) ? priority : undefined,
     sort: oneOf(TASK_SORTS, one(params.sort)),
+    done: one(params.done) === '1' || undefined,
+    home: home === 'my_work' ? undefined : home,
   };
 }
 
@@ -187,6 +207,7 @@ export function queryFilters(query: Record<string, unknown> | undefined): Partia
     owner: typeof query.owner === 'string' && UUID.test(query.owner) ? query.owner : undefined,
     priority: typeof query.priority === 'string' && KEY.test(query.priority) ? query.priority : undefined,
     sort: typeof query.sort === 'string' ? oneOf(TASK_SORTS, query.sort) : undefined,
+    done: query.done === true || undefined,
   };
 }
 
@@ -243,7 +264,7 @@ export const defaultViewOpens = (f: TaskFilters): boolean => filtersHref(f) === 
 export function filtersHref(f: TaskFilters, change: Partial<TaskFilters> = {}): string {
   const next = { ...f, ...change };
   const p = new URLSearchParams();
-  if (next.scope !== 'my_work') p.set('view', next.scope);
+  if (next.scope !== (next.home ?? 'my_work')) p.set('view', next.scope);
   if (next.layout && next.layout !== 'list') p.set('layout', next.layout);
   if (next.layout === 'calendar' && next.month) p.set('month', next.month);
   if (next.status) p.set('status', next.status);
@@ -256,6 +277,7 @@ export function filtersHref(f: TaskFilters, change: Partial<TaskFilters> = {}): 
   if (next.owner) p.set('owner', next.owner);
   if (next.priority) p.set('priority', next.priority);
   if (next.sort) p.set('sort', next.sort);
+  if (next.done) p.set('done', '1');
   const s = p.toString();
   return s ? `/tasks?${s}` : '/tasks';
 }
@@ -706,4 +728,24 @@ export function taskIsTestOwned(
     (task.owner_id !== null && test.has(task.owner_id)) ||
     (task.created_by !== null && task.created_by !== undefined && test.has(task.created_by))
   );
+}
+
+/**
+ * Landing 57 — the list shows open tasks only, unless it is asked for more: a status chip (Done, Cancelled) names what
+ * it wants, `?done=1` (Show done) brings the finished ones back, and Past work is finished work by definition. The board
+ * keeps every column (a card is dragged to Done there) and the calendar keeps its days. Only what is drawn changes: the
+ * count line and the tab's number still count every row, so "3 done" stays true.
+ */
+export function hidesClosed(f: TaskFilters): boolean {
+  return (f.layout ?? 'list') === 'list' && !f.status && !f.done && f.scope !== 'past';
+}
+
+/** Done or cancelled — a finished task, which the list puts away unless asked (`hidesClosed`). */
+export const isClosedRow = (r: { meaning: string }): boolean => r.meaning === 'done' || r.meaning === 'cancelled';
+
+/** What a saved view keeps of the filters on screen: everything the address holds, never the person's own home tab. */
+export function savedQuery(f: TaskFilters): Record<string, unknown> {
+  const { home: _home, ...rest } = f;
+  void _home;
+  return { ...rest };
 }

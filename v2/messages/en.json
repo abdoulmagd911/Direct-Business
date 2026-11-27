@@ -920,7 +920,8 @@
         "my_work": "No tasks yet.",
         "past": "No past work yet. Add it from a report above.",
         "starred": "No starred tasks yet.",
-        "escalated": "Nothing needs help right now."
+        "escalated": "Nothing needs help right now.",
+        "my_work_team": "Nothing is yours yet. Your team's tasks are under Team."
       },
       "noNotes": "No notes",
       "noOtherNotes": "No other notes",
@@ -1015,7 +1016,10 @@
         "dueClear": "Clear",
         "duePlaceholder": "For example, 20 Oct 2026",
         "owner_required": "Pick who is responsible",
-        "notSaved": "Nothing was saved. What you typed is still here."
+        "notSaved": "Nothing was saved. What you typed is still here.",
+        "wentTo": "It went to {name}",
+        "someoneElse": "someone else",
+        "wentToWhere": "It is under Team, not in your My work."
       },
       "noTeam": "You're not in a team yet. Ask an admin to add you to one.",
       "edit": {
@@ -1283,7 +1287,10 @@
         "priority": "Priority: {priority}",
         "seeAll": "See all · {count}",
         "seeFewer": "Show fewer",
-        "steps": "{done} of {total} steps"
+        "steps": "{done} of {total} steps",
+        "showDone": "Show done ({count})",
+        "hideDone": "Hide done",
+        "openTeam": "Open Team"
       },
       "comments": {
         "mentionNote": "A person you mention is added as a helper: the task shows under their Helping. The Responsible does not change."
@@ -1294,7 +1301,8 @@
         "moved": "{from} → {to}",
         "given": "Given to {to}",
         "by": "by {name}"
-      }
+      },
+      "allDone": "Every task here is done or cancelled."
     },
     "weeklyReview": {
       "title": "Weekly review",
