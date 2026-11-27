@@ -95,7 +95,9 @@ for (const width of [375, 320]) {
       }
       return mark;
     };
-    const marks: Record<string, string[]> = { '/tasks': [], '/partners': [], '/my-day': [] };
+    // the person is an admin, whose Tasks opens on Team (Landing 57): their own tasks are under My work, by its address
+    const TASKS = '/tasks?view=my_work';
+    const marks: Record<string, string[]> = { [TASKS]: [], '/partners': [], '/my-day': [] };
     for (const [form, text] of [
       ['spaced', SPACED],
       ['unbroken', UNBROKEN],
@@ -103,7 +105,7 @@ for (const width of [375, 320]) {
       const k = `${form.slice(0, 2)}${width}${Math.random().toString(36).slice(2, 5)}`;
       const t = (what: string) => `${k}${what} ${text}`.replace(/ $/, '');
       const title = (what: string) => (form === 'unbroken' ? `${k}${what}${text}` : t(what));
-      marks['/tasks']!.push(await made(title('T'), 'task', `${k}T`));
+      marks[TASKS]!.push(await made(title('T'), 'task', `${k}T`));
       marks['/partners']!.push(await made(title('C'), 'client', `${k}C`));
       marks['/my-day']!.push(await made(title('N'), 'note', `${k}N`));
       marks['/my-day']!.push(await made(title('R'), 'reminder', `${k}R`));
@@ -113,6 +115,15 @@ for (const width of [375, 320]) {
       await page.goto(path);
       await hydrated(page);
       for (const mark of list) {
+        // measure only once the title is drawn (a list can draw its rows after the page is ready); a title that never
+        // shows is measured nowhere — a fault of the test, never a pass
+        const drawn = await page
+          .getByText(mark, { exact: false })
+          .first()
+          .waitFor({ timeout: 15_000 })
+          .then(() => true)
+          .catch(() => false);
+        if (!drawn) bad.push(`${path}: "${mark}" is not on the page`);
         bad.push(...(await problems(page, mark)).map((x) => `${path}: ${x}`));
       }
     }
