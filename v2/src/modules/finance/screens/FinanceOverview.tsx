@@ -32,14 +32,12 @@ import {
 import type { PeriodAsk, PeriodKey } from '../period';
 import { monthStart } from '../period';
 import type { IncomeByService, LateChange, OverviewData, Period } from '../types';
+import type { FinanceTab } from '../tabs';
 import { financeWrote } from '../use-reads';
 import { CloseReceipt, type Closed } from './CloseReceipt';
 import { FinanceCard, TilesSkeleton } from './parts';
 
 type Locale = 'en' | 'ar';
-
-/** What a phone shows under the figures, one at a time (13 Nov phone board); a wider screen shows all three. */
-export type PhoneView = 'months' | 'services' | 'ledger';
 
 /** A real day as `YYYY-MM-DD` (not 30 Feb, not a half-typed day). */
 const isDay = (s: string) =>
@@ -57,8 +55,9 @@ const monthName = (m: string, locale: Locale) =>
  * what is not yet invoiced (V424), the commissions sentence (V612), Needs attention, the months newest first with
  * their close and what changed after it (V620), and income by service. A part that failed to read says which one,
  * with Try again — never a 0 (M27, M53). A month with cost-provisional units carries a Provisional row under it, their
- * revenue and profit apart and their cost empty, never 0 (rulebook §16). On a phone the months, the services and the
- * ledger are one view at a time (`phoneView`); a wider screen shows them all.
+ * revenue and profit apart and their cost empty, never 0 (rulebook §16). Under the headline, one row of tabs on every
+ * screen (Landing 58, `tab`): Overview holds the months and income by service; the other tabs' sections are drawn by
+ * the page below this one (see tabs.ts).
  */
 export function FinanceOverview({
   ask,
@@ -70,8 +69,9 @@ export function FinanceOverview({
   refused,
   retry: retryBlock,
   closer,
-  phoneView,
-  onPhoneView,
+  tab,
+  onTab,
+  mayImport = false,
 }: {
   ask: PeriodAsk;
   today: string;
@@ -88,9 +88,11 @@ export function FinanceOverview({
   retry?: Partial<Record<keyof OverviewData, () => void>>;
   /** The signed-in person's name, for the receipt of a month they close. */
   closer?: string;
-  /** The view a phone shows; without `onPhoneView` there is no switch and nothing is put away. */
-  phoneView?: PhoneView;
-  onPhoneView?: (v: PhoneView) => void;
+  /** The open tab (Landing 58); without `onTab` there is no tab row and nothing is put away. */
+  tab?: FinanceTab;
+  onTab?: (v: FinanceTab) => void;
+  /** Whether the Import tab is offered: Own or Full on Finance and the import extra (Landing 56). */
+  mayImport?: boolean;
 }) {
   const t = useTranslations();
   const locale = useLocale() as Locale;
@@ -116,10 +118,10 @@ export function FinanceOverview({
   const strip = attentionState({ health: data.health, loading: loading?.health, refused: refused?.health });
   // the Payments stamp: the day behind the figures, said as "not refreshed since" once it is more than two days old
   const stamp = data.asOf ? stampOf(data.asOf, today) : null;
-  /** Income by company is a part of the ledger: a phone opens that view first, then the browser is taken to it. */
+  /** Income by company is a part of the ledger: the Ledger tab opens first, then the browser is taken to it. */
   const toCompany = (e: { preventDefault: () => void }) => {
     e.preventDefault();
-    onPhoneView?.('ledger');
+    onTab?.('ledger');
     requestAnimationFrame(() =>
       (document.getElementById('finance-company') ?? document.getElementById('finance-ledger'))?.scrollIntoView({
         block: 'start',
@@ -144,21 +146,22 @@ export function FinanceOverview({
     data.period.units === 0 &&
     data.period.revenue === 0 &&
     data.period.cost === 0;
-  const view: PhoneView = phoneView ?? 'months';
-  /** On a phone, a block that is not the open view is put away; the DOM keeps it, so nothing is read twice. */
-  const away = (v: PhoneView) => (onPhoneView && view !== v ? 'max-sm:hidden' : undefined);
-  // the phone's view switch: under the figures, and under the not-imported note too (the ledger view holds Import)
-  const viewSwitch = onPhoneView ? (
+  const open: FinanceTab = tab ?? 'overview';
+  /** A tab's sections that are not open are put away; the DOM keeps them, so nothing is read twice. */
+  const away = (v: FinanceTab) => (onTab && open !== v ? 'hidden' : undefined);
+  // one row of tabs under the headline, on every screen (Landing 58); under the not-imported note too, where the
+  // ledger and the import still are
+  const tabRow = onTab ? (
     <Tabs
-      className="sm:hidden"
-      label={t('finance.view.label')}
-      fill
-      value={view}
-      onValueChange={(v) => onPhoneView(v as PhoneView)}
+      label={t('finance.tab.label')}
+      value={open}
+      onValueChange={(v) => onTab(v as FinanceTab)}
       tabs={[
-        { value: 'months', label: t('finance.view.months') },
-        { value: 'services', label: t('finance.view.services') },
-        { value: 'ledger', label: t('finance.view.ledger') },
+        { value: 'overview', label: t('finance.tab.overview') },
+        { value: 'ledger', label: t('finance.tab.ledger') },
+        { value: 'owed', label: t('finance.tab.owed') },
+        { value: 'checks', label: t('finance.tab.checks') },
+        ...(mayImport ? [{ value: 'import', label: t('finance.tab.import') }] : []),
       ]}
     />
   ) : null;
@@ -221,7 +224,7 @@ export function FinanceOverview({
       {neverImported ? (
         <div data-finance-not-imported>
           <DataState kind="empty" message={t('finance.notImported')} />
-          {viewSwitch ? <div className="mt-5 sm:hidden">{viewSwitch}</div> : null}
+          {tabRow ? <div className="mt-5">{tabRow}</div> : null}
         </div>
       ) : (
         <>
@@ -276,17 +279,23 @@ export function FinanceOverview({
             missing('health', t('finance.failed.health'))
           )}
 
-          {viewSwitch}
+          {tabRow}
 
-          <div className="grid items-start gap-5 @min-[1040px]:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
-            <div className={cn('min-w-0', away('months'))}>
+          <div
+            className={cn(
+              'grid items-start gap-5 @min-[1040px]:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]',
+              away('overview'),
+            )}
+            data-finance-tab-panel="overview"
+          >
+            <div className="min-w-0">
               {rows && data.period ? (
                 <Months rows={rows} period={data.period} ask={ask} full={full} today={today} closer={closer} />
               ) : (
                 missing(data.period ? 'closed' : 'period', t('finance.failed.months'))
               )}
             </div>
-            <div className={cn('min-w-0', away('services'))}>
+            <div className="min-w-0">
               {data.service ? (
                 <ByService service={data.service} onCompany={toCompany} />
               ) : (

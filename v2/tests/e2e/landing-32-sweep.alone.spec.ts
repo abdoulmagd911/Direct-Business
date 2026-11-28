@@ -183,7 +183,7 @@ function record(entry: Entry) {
 }
 
 /** Waits until the page has drawn what this person is to see on it; says what is missing instead of throwing. */
-async function settle(page: Page, key: PageKey, role: RoleKey, phone: boolean): Promise<string[]> {
+async function settle(page: Page, key: PageKey, role: RoleKey): Promise<string[]> {
   const missing: string[] = [];
   const seen = async (selector: string, what: string, timeout = 45_000) => {
     try {
@@ -208,7 +208,8 @@ async function settle(page: Page, key: PageKey, role: RoleKey, phone: boolean): 
   // Viewer at View; this overrules Landing 34's none for a member) — so a member is swept like a manager below
   if (key === 'finance') {
     await gone('[data-finance-overview] [data-state="loading"]', 'the Overview blocks never answered');
-    if (phone) await page.locator('[role=tab][id$="-tab-ledger"]').click();
+    // the ledger is under its own tab on every screen (Landing 58; before it, on a phone only)
+    await page.locator('[role=tab][id$="-tab-ledger"]').click();
     await seen('[data-finance-report]', 'the Ledger was not drawn');
     await seen('[data-counted-table] tbody tr', 'Is it counted? was not drawn');
   } else if (key === 'settings') {
@@ -321,7 +322,7 @@ for (const role of ROLES) {
         for (const [key, url] of pages) {
           await page.goto(url);
           await hydrated(page);
-          const missing = await settle(page, key, role, phone);
+          const missing = await settle(page, key, role);
           const found = await inspect(page, key, role, phone, language === 'ar' ? 'rtl' : 'ltr');
           entry.rowsTested += found.tested;
           entry.rowsWithIssue += found.bad;

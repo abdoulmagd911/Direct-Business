@@ -4,7 +4,8 @@ import { useEffect, useState } from 'react';
 import { useMaybeMe } from '@/core/auth/me-context';
 import { cn } from '@/ui/cn';
 import { healthOf } from '../figures';
-import { ledgerMayAsk, opensLedgerView } from '../ledger';
+import { ledgerMayAsk } from '../ledger';
+import { financeTab, financeTabHref, tabOfAnchor, type FinanceTab } from '../tabs';
 import { useFinanceRead, type Block } from '../use-reads';
 import type { PeriodAsk } from '../period';
 import type {
@@ -17,7 +18,7 @@ import type {
   PaymentsAsOf,
   Period,
 } from '../types';
-import { FinanceOverview, type PhoneView } from './FinanceOverview';
+import { FinanceOverview } from './FinanceOverview';
 import { FinanceImportSection } from './FinanceImportSection';
 import { FinanceLedgerSection } from './FinanceLedgerSection';
 
@@ -38,6 +39,7 @@ export function FinanceOverviewLive({
   mayImport,
   ledger,
   view,
+  tab: tabParam,
 }: {
   ask: PeriodAsk;
   today: string;
@@ -49,6 +51,8 @@ export function FinanceOverviewLive({
   /** The ledger's filters, from the address (workstream B); the section below the Overview draws them. */
   ledger: LedgerFilter;
   view: string;
+  /** The tab the address asks for (`?tab=`); Overview when it names none. */
+  tab?: string;
 }) {
   const locale = useLocale();
   const person = useMaybeMe()?.person;
@@ -58,14 +62,31 @@ export function FinanceOverviewLive({
       ? person.full_name_ar
       : person.full_name_en
     : undefined;
-  const [phoneView, setPhoneView] = useState<PhoneView>('months');
-  // An address that names a part of the ledger (…/finance#finance-company — Income by company) opens the Ledger view
-  // on a phone, where that part is otherwise put away; once the ledger is drawn the browser is taken to it.
+  // Landing 58: the open tab, from the address (`?tab=`); an anchor that names a section opens that section's tab
+  // (…/finance#finance-company opens Ledger) and, once it is drawn, the browser is taken to the section.
+  const imports = mayType && mayImport;
+  const [tab, setTab] = useState<FinanceTab>(() => financeTab(tabParam, imports));
   useEffect(() => {
-    const hash = window.location.hash;
-    if (!opensLedgerView(hash)) return;
-    queueMicrotask(() => setPhoneView('ledger'));
-  }, []);
+    const follow = () => {
+      const hash = window.location.hash;
+      const named = tabOfAnchor(hash);
+      if (!named || (named === 'import' && !imports)) return;
+      queueMicrotask(() => {
+        setTab(named);
+        requestAnimationFrame(() => document.getElementById(hash.slice(1))?.scrollIntoView({ block: 'start' }));
+      });
+    };
+    follow();
+    // an anchor followed on this page (a link, or the address changed by hand) opens its tab as well
+    window.addEventListener('hashchange', follow);
+    return () => window.removeEventListener('hashchange', follow);
+  }, [imports]);
+  /** A tab is a change of address in place: Back, refresh and a shared link keep it, and nothing is read again. */
+  const openTab = (v: FinanceTab) => {
+    setTab(v);
+    window.history.replaceState(window.history.state, '', financeTabHref(window.location.search, v));
+  };
+  const away = (v: FinanceTab) => (tab !== v ? 'hidden' : undefined);
   const range = { p_from: ask.from, p_to: ask.to };
   const at = `${ask.from}|${ask.to}`;
   const period = useFinanceRead<Period, 'finance_period'>('finance_period', range, `period|${at}`);
@@ -103,8 +124,9 @@ export function FinanceOverviewLive({
         mayType={mayType}
         data={data}
         closer={closer}
-        phoneView={phoneView}
-        onPhoneView={setPhoneView}
+        tab={tab}
+        onTab={openTab}
+        mayImport={imports}
         loading={{
           period: is(period.block),
           closed: is(closed.block),
@@ -123,26 +145,23 @@ export function FinanceOverviewLive({
           service: service.retry,
         }}
       />
-      {/* on a phone the ledger, and the import under it, are the third view; a wider screen shows them always */}
-      <div
-        className={cn('flex min-w-0 flex-col gap-8', phoneView !== 'ledger' && 'max-sm:hidden')}
-        data-finance-ledger-view
-      >
-        <FinanceLedgerSection
-          ask={ask}
-          initial={ledger}
-          view={view}
-          full={full}
-          own={mayType && !full}
-          // The ledger waits for the figures to be ASKED first, never for them to succeed (Landing 34): held until
-          // they were "ready", a failed figures read left the ledger on "Loading" for good, with no Try again of its
-          // own. Once the figures have settled — read or failed — the ledger and "Is it counted?" ask theirs.
-          ready={ledgerMayAsk(period.block.status)}
-        />
-        {/* Importing needs Finance at Own or above and the import extra (the import doors refuse anything less), so the
-            section is only here for a person who has both (Landing 56: the extra decides, not the level). */}
-        {mayType && mayImport ? <FinanceImportSection /> : null}
-      </div>
+      {/* the other tabs' sections (Landing 58): each is only put away while its tab is not open, never unmounted */}
+      <FinanceLedgerSection
+        ask={ask}
+        initial={ledger}
+        view={view}
+        full={full}
+        own={mayType && !full}
+        ready={ledgerMayAsk(period.block.status)}
+        away={away}
+      />
+      {/* Importing needs Finance at Own or above and the import extra (the import doors refuse anything less), so the
+          tab is only there for a person who has both (Landing 56: the extra decides, not the level). */}
+      {imports ? (
+        <div className={cn('min-w-0', away('import'))} data-finance-tab-panel="import">
+          <FinanceImportSection />
+        </div>
+      ) : null}
     </div>
   );
 }

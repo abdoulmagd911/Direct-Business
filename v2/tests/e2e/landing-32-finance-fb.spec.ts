@@ -17,7 +17,7 @@
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { expect, test, type Locator, type Page } from '@playwright/test';
-import { blocksSettled } from './support/finance-blocks';
+import { blocksSettled, openFinanceTab } from './support/finance-blocks';
 import {
   clearMadeUpRules,
   hydrated,
@@ -43,6 +43,8 @@ async function openFinance(page: Page, url: string) {
   await page.goto(url);
   await hydrated(page);
   await blocksSettled(page);
+  // Landing 58: the ledger is under its own tab
+  await openFinanceTab(page, 'Ledger');
   await expect(page.locator('[data-finance-report]'), 'the Ledger has answered').toBeVisible({ timeout: 45_000 });
   await expect(page.locator('[data-counted-table] [data-state="loading"]'), 'Is it counted? has answered').toHaveCount(
     0,
@@ -403,6 +405,7 @@ test.describe('the lists in Settings → Finance', () => {
       });
       await page.goto('/finance?period=custom&from=1965-01-01&to=1965-01-31');
       await hydrated(page);
+      await openFinanceTab(page, 'Import');
       const section = page.locator('[data-finance-import-section]');
       await section.scrollIntoViewIfNeeded();
       await section.locator('[data-partner-search]').fill(org.name);
