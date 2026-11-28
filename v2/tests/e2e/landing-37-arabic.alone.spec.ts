@@ -9,7 +9,7 @@
  */
 import { expect, test } from '@playwright/test';
 import { withArabicOn, readsArabic } from './support/arabic';
-import { blocksSettled } from './support/finance-blocks';
+import { blocksSettled, openFinanceTab } from './support/finance-blocks';
 import { hydrated, ownMonth, rowNo, seedImported, seedOrg, signedInAdmin } from './support/landing-32';
 import { PHONE, sideways } from './support/landing-34';
 
@@ -39,6 +39,8 @@ test('Arabic: Custom opens on the first press, the not-yet-counted list and the 
   // the amount as English writes it, to compare digit for digit
   await page.goto(month.url);
   await hydrated(page);
+  // the ledger is under its own tab (Landing 58)
+  await openFinanceTab(page, 'Ledger');
   await expect(row).toBeVisible({ timeout: 45_000 });
   const digits = (s: string) => s.replace(/[^\d.,]/g, '');
   const english = digits(await row.locator('[data-ledger-not-yet-counted-amount] bdi').innerText());

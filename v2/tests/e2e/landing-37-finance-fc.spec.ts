@@ -18,7 +18,7 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { randomUUID } from 'node:crypto';
 import { expect, test, type Page } from '@playwright/test';
-import { blocksSettled } from './support/finance-blocks';
+import { blocksSettled, openFinanceTab } from './support/finance-blocks';
 import {
   hydrated,
   num,
@@ -41,6 +41,8 @@ async function openFinance(page: Page, url: string) {
   await page.goto(url);
   await hydrated(page);
   await blocksSettled(page);
+  // Landing 58: the ledger is under its own tab
+  await openFinanceTab(page, 'Ledger');
   await expect(page.locator('[data-finance-report]'), 'the Ledger has answered').toBeVisible({ timeout: 45_000 });
 }
 const strip = (page: Page, kind: string) => page.locator(`[data-finance-ledger-total="${kind}"] > span`).nth(1);

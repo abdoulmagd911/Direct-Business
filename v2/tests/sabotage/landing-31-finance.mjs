@@ -76,14 +76,15 @@ export const sabotages = [
     ],
   },
   {
-    name: 'by-service-stays-over-the-months-on-a-phone',
+    // Landing 58: the phone's Months / Services switch became one row of tabs on every screen
+    name: 'the-overview-stays-under-every-tab',
     breaks: [CARDS],
-    expect: 'By service is put away on a phone while Months is open',
+    expect: 'put away while Ledger is open',
     edits: [
       {
         file: OVERVIEW,
-        find: "            <div className={cn('min-w-0', away('services'))}>",
-        replace: '            <div className="min-w-0">',
+        find: '              away(\'overview\'),\n            )}\n            data-finance-tab-panel="overview"',
+        replace: '            )}\n            data-finance-tab-panel="overview"',
       },
     ],
   },

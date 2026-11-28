@@ -7,6 +7,7 @@
  * Sabotages: tests/sabotage/landing-40.mjs.
  */
 import { expect, test, type Page } from '@playwright/test';
+import { openFinanceTab } from './support/finance-blocks';
 import { hydrated, personAs, signedInAdmin, signedInAs } from './support/landing-32';
 
 const extra = (page: Page) => page.locator('[data-extra-access]');
@@ -67,6 +68,8 @@ test('an admin sets a team member to Allowed on Import: that member imports, a c
 
   await theirs.page.reload();
   await hydrated(theirs.page);
+  // the import is under its own tab, there only for a person who imports (Landing 58)
+  await openFinanceTab(theirs.page, 'Import');
   await expect(
     theirs.page.locator('[data-finance-import-section]'),
     'the member set to Allowed gets the import',

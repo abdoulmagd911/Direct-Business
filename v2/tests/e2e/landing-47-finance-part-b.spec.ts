@@ -22,7 +22,7 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { randomUUID } from 'node:crypto';
 import { expect, test, type Page } from '@playwright/test';
-import { blocksSettled } from './support/finance-blocks';
+import { blocksSettled, openFinanceTab } from './support/finance-blocks';
 import {
   hydrated,
   num,
@@ -44,6 +44,8 @@ async function openFinance(page: Page, url: string) {
   await page.goto(url);
   await hydrated(page);
   await blocksSettled(page);
+  // Landing 58: the ledger is under its own tab
+  await openFinanceTab(page, 'Ledger');
   await expect(page.locator('[data-finance-report]'), 'the Ledger has answered').toBeVisible({ timeout: 45_000 });
 }
 const strip = (page: Page, kind: string) => page.locator(`[data-finance-ledger-total="${kind}"] > span`).nth(1);
@@ -151,7 +153,8 @@ test('1 · the Ledger says what each row is, By deal type filters it, a person s
   await page.locator('[data-ledger-deal-filter-option="all"]').click();
   await expect(page.locator('[data-finance-ledger-row]'), 'all: the three rows').toHaveCount(3);
 
-  // the agreement card and the held card
+  // the agreement card and the held card, under Checks (Landing 58)
+  await openFinanceTab(page, 'Checks');
   const verdict = page.locator('[data-finance-reconciliation] [data-reconcile-verdict]');
   await expect(verdict, 'Finance agrees with itself for the month').toHaveAttribute(
     'data-reconcile-verdict',
@@ -167,7 +170,8 @@ test('1 · the Ledger says what each row is, By deal type filters it, a person s
   ).toBeVisible({ timeout: 45_000 });
   await expect(held.locator(`[data-held-row][data-number="${unset}"]`), 'and still counts').toContainText('Counted');
 
-  // a person sets the deal type, with a reason
+  // a person sets the deal type, with a reason — back on the Ledger
+  await openFinanceTab(page, 'Ledger');
   await ledgerRow(page, unset).locator('[data-ledger-set-deal-type]').click();
   const dialog = page.getByRole('dialog');
   await expect(dialog, 'the box names the row').toContainText(unset);
@@ -219,6 +223,8 @@ test('2 · what is owed and how old: on the Finance page and on the organisation
   await seedImportedRow(org.id, admin.id, daysAgo(95), { number: paid, revenue: 800, cost: 100 });
 
   await openFinance(page, '/finance');
+  // what is owed is under Owed (Landing 58)
+  await openFinanceTab(page, 'Owed');
   const card = page.locator('[data-finance-ageing]');
   await expect(card, 'the pursue list opens on postpaid').toHaveAttribute('data-ageing-scope', 'postpaid');
   const row = (n: string) => card.locator(`[data-ageing-row][data-number="${n}"]`);
@@ -367,6 +373,7 @@ test('5 · an expense file: a repeated line counts once, a tax invoice number is
   await seedImported(org.id, admin.id, '1964-02-10', [{ number: txn, revenue: 1000, cost: null }]);
   await page.goto('/finance?period=custom&from=1964-02-01&to=1964-02-29');
   await hydrated(page);
+  await openFinanceTab(page, 'Import');
   const section = page.locator('[data-finance-import-section]');
   await section.scrollIntoViewIfNeeded();
   await section.locator('[data-partner-search]').fill(org.name);

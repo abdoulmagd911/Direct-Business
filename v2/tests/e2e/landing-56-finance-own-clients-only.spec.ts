@@ -8,7 +8,7 @@
  * Sabotages: tests/sabotage/landing-56-e2e.mjs.
  */
 import { expect, test, type Page } from '@playwright/test';
-import { blocksSettled } from './support/finance-blocks';
+import { blocksSettled, openFinanceTab } from './support/finance-blocks';
 import {
   clientId,
   hydrated,
@@ -27,6 +27,8 @@ async function openFinance(page: Page, url: string) {
   await page.goto(url);
   await hydrated(page);
   await blocksSettled(page);
+  // Landing 58: the ledger is under its own tab
+  await openFinanceTab(page, 'Ledger');
   await expect(page.locator('[data-finance-report]'), 'the Ledger has answered').toBeVisible({ timeout: 45_000 });
 }
 const ledgerRow = (page: Page, number: string) => page.locator('[data-finance-ledger-row]').filter({ hasText: number });

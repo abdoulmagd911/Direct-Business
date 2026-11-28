@@ -3789,11 +3789,13 @@
     "locked": "You do not have access to Finance",
     "here": "Recorded here",
     "unified": "Unified ledger",
-    "view": {
-      "label": "View",
-      "months": "Months",
-      "services": "Services",
-      "ledger": "Ledger"
+    "tab": {
+      "label": "Finance sections",
+      "overview": "Overview",
+      "ledger": "Ledger",
+      "owed": "Owed",
+      "checks": "Checks",
+      "import": "Import"
     },
     "achievements": {
       "title": "Achievements in this period",

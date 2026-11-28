@@ -13,7 +13,8 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 import ar from '../../../messages/ar.json';
 import en from '../../../messages/en.json';
-import { FinanceOverview, type PhoneView } from '../../../src/modules/finance/screens/FinanceOverview';
+import { FinanceOverview } from '../../../src/modules/finance/screens/FinanceOverview';
+import type { FinanceTab } from '../../../src/modules/finance/tabs';
 import type { OverviewData } from '../../../src/modules/finance/types';
 
 vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh: () => {}, push: () => {} }) }));
@@ -50,7 +51,10 @@ const whole: OverviewData = {
   service: { from: '2026-10-01', to: '2026-10-31', revenue: 1500, rows: [], gap: 0 },
 };
 
-const html = (data: OverviewData, opts: { locale?: 'en' | 'ar'; onPhoneView?: (v: PhoneView) => void } = {}) =>
+const html = (
+  data: OverviewData,
+  opts: { locale?: 'en' | 'ar'; onTab?: (v: FinanceTab) => void; tab?: FinanceTab; mayImport?: boolean } = {},
+) =>
   renderToStaticMarkup(
     <NextIntlClientProvider
       locale={opts.locale ?? 'en'}
@@ -62,8 +66,9 @@ const html = (data: OverviewData, opts: { locale?: 'en' | 'ar'; onPhoneView?: (v
         today="2026-11-16"
         full
         data={data}
-        phoneView={opts.onPhoneView ? 'months' : undefined}
-        onPhoneView={opts.onPhoneView}
+        tab={opts.onTab ? (opts.tab ?? 'overview') : undefined}
+        onTab={opts.onTab}
+        mayImport={opts.mayImport}
       />
     </NextIntlClientProvider>,
   );
@@ -121,18 +126,34 @@ describe('the figure cards', () => {
   });
 });
 
-describe('the phone view switch', () => {
-  it('is only there when the page hands it one, and puts the other views away on a phone only', () => {
+// Landing 58: the phone's Months / Services / Ledger switch became one row of tabs on every screen.
+describe('the Finance tabs', () => {
+  it('are only there when the page hands them one, and put nothing away without them', () => {
     const plain = html(whole);
-    expect(plain, 'no switch on its own').not.toContain('role="tablist"');
-    expect(plain, 'nothing is put away').not.toContain('max-sm:hidden"><section');
-    const switched = html(whole, { onPhoneView: () => {} });
-    expect(switched).toContain('role="tablist"');
-    for (const word of ['Months', 'Services', 'Ledger']) expect(switched, word).toContain(`>${word}<`);
-    // Months is open: By service is put away on a phone, the months are not
-    expect(switched, 'the months stay').toMatch(/<div class="min-w-0"><section[^>]*data-finance-months/);
-    expect(switched, 'By service is put away on a phone while Months is open').toMatch(
-      /<div class="min-w-0 max-sm:hidden"><section[^>]*data-finance-service/,
+    expect(plain, 'no tabs on their own').not.toContain('role="tablist"');
+    expect(plain, 'nothing is put away').not.toMatch(
+      /data-finance-tab-panel="overview"[^>]*hidden|hidden[^"]*"[^>]*data-finance-tab-panel/,
     );
+  });
+
+  it('name the four sections on every screen, with Import only for a person who imports', () => {
+    const tabs = html(whole, { onTab: () => {} });
+    expect(tabs).toContain('role="tablist"');
+    for (const word of ['Overview', 'Ledger', 'Owed', 'Checks']) expect(tabs, word).toContain(`>${word}<`);
+    expect(tabs, 'no Import tab for a person who does not import').not.toContain('>Import<');
+    expect(html(whole, { onTab: () => {}, mayImport: true }), 'Import for a person who imports').toContain('>Import<');
+    expect(tabs, 'never a phone-only row').not.toMatch(/role="tablist"[^>]*sm:hidden/);
+  });
+
+  it('show the months and income by service under Overview, and put them away under another tab', () => {
+    const overview = html(whole, { onTab: () => {} });
+    expect(overview).toMatch(/<div class="(?![^"]*\bhidden\b)[^"]*" data-finance-tab-panel="overview">/);
+    expect(overview).toContain('data-finance-months');
+    expect(overview).toContain('data-finance-service');
+    const ledger = html(whole, { onTab: () => {}, tab: 'ledger' });
+    expect(ledger, 'put away while Ledger is open').toMatch(
+      /<div class="[^"]*\bhidden\b[^"]*" data-finance-tab-panel="overview">/,
+    );
+    expect(ledger, 'the figures stay on top under every tab').toContain('data-finance-tile="revenue"');
   });
 });

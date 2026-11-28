@@ -15,6 +15,8 @@ import type { PeriodAsk } from '../period';
 import type { DealType } from '../deal-type';
 import type { LedgerCompany, LedgerFilter, LedgerRow } from '../types';
 import { financeWrote, useFinanceRead } from '../use-reads';
+import type { FinanceTab } from '../tabs';
+import { cn } from '@/ui/cn';
 import { CountedTable } from './CountedTable';
 import { FinanceAchievements } from './FinanceAchievements';
 import { FinanceAgeing, FinanceHeld, FinanceReconciliation } from './FinanceChecks';
@@ -40,6 +42,7 @@ export function FinanceLedgerSection({
   full,
   own = false,
   ready,
+  away = () => undefined,
 }: {
   ask: PeriodAsk;
   initial: LedgerFilter;
@@ -50,6 +53,8 @@ export function FinanceLedgerSection({
   own?: boolean;
   /** False holds the ledger read until the tiles are asked first (the read-order rule). */
   ready: boolean;
+  /** Landing 58: the class that puts a tab's sections away while that tab is not open (none: every section shows). */
+  away?: (tab: FinanceTab) => string | undefined;
 }) {
   const t = useTranslations();
   const locale = useLocale() as Locale;
@@ -177,114 +182,125 @@ export function FinanceLedgerSection({
       })),
   ];
 
+  const panel = (tab: FinanceTab) => cn('flex min-w-0 flex-col gap-8', away(tab));
   return (
     <>
-      <FinanceCard
-        id="finance-ledger"
-        title={t('finance.ledger.title')}
-        source={t('finance.unified')}
-        data-finance-ledger-section
-      >
-        <div className="flex flex-col gap-4 px-4 pb-4 sm:px-5">
-          <SavedViewsBar
-            page="finance"
-            fixed={[{ key: 'all', label: t('common.all') }]}
-            current={currentView}
-            query={{ period: ask.key, from: ask.from, to: ask.to, ...ledgerFilterQuery(draft) }}
-            onOpen={openView}
-            canShare={full}
-            onDefault={(v) => openView(v)}
-            saveHint={t('finance.ledger.saveHint')}
+      <div className={panel('ledger')} data-finance-tab-panel="ledger">
+        <FinanceCard
+          id="finance-ledger"
+          title={t('finance.ledger.title')}
+          source={t('finance.unified')}
+          data-finance-ledger-section
+        >
+          <div className="flex flex-col gap-4 px-4 pb-4 sm:px-5">
+            <SavedViewsBar
+              page="finance"
+              fixed={[{ key: 'all', label: t('common.all') }]}
+              current={currentView}
+              query={{ period: ask.key, from: ask.from, to: ask.to, ...ledgerFilterQuery(draft) }}
+              onOpen={openView}
+              canShare={full}
+              onDefault={(v) => openView(v)}
+              saveHint={t('finance.ledger.saveHint')}
+            />
+            <form
+              className="grid items-end gap-3 @min-[520px]:grid-cols-2 @min-[1000px]:grid-cols-[repeat(4,minmax(0,1fr))_auto]"
+              data-finance-ledger-filters
+              onSubmit={(e) => {
+                e.preventDefault();
+                go(draft);
+              }}
+            >
+              <label className="flex min-w-0 flex-col gap-1.5 text-sm font-medium text-strong">
+                {t('finance.ledger.partner')}
+                <Select
+                  value={partner || ALL}
+                  onValueChange={(v) => setPartner(v === ALL ? '' : v)}
+                  options={companyOptions}
+                  aria-label={t('finance.ledger.partner')}
+                  data-finance-filter-company
+                />
+              </label>
+              <label className="flex min-w-0 flex-col gap-1.5 text-sm font-medium text-strong">
+                {t('finance.ledger.clientId')}
+                <Input
+                  value={clientId}
+                  onChange={(e) => setClientId(e.target.value)}
+                  aria-label={t('finance.ledger.clientId')}
+                  data-finance-filter-client
+                />
+              </label>
+              <label className="flex min-w-0 flex-col gap-1.5 text-sm font-medium text-strong">
+                {t('finance.ledger.kind')}
+                <Select
+                  value={kind || ALL}
+                  onValueChange={(v) => setKind(v === ALL ? '' : v)}
+                  options={[
+                    { value: ALL, label: t('finance.ledger.allKinds') },
+                    ...LEDGER_KINDS.map((k) => ({ value: k, label: t(`finance.kind.${k}`) })),
+                  ]}
+                  aria-label={t('finance.ledger.kind')}
+                  data-finance-filter-kind
+                />
+              </label>
+              <label className="flex min-w-0 flex-col gap-1.5 text-sm font-medium text-strong">
+                {t('finance.ledger.code')}
+                <Input
+                  value={code}
+                  onChange={(e) => setCode(e.target.value)}
+                  aria-label={t('finance.ledger.code')}
+                  data-finance-filter-code
+                />
+              </label>
+              <div className="flex flex-wrap gap-2 @min-[520px]:col-span-2 @min-[1000px]:col-span-1">
+                <Button type="submit" variant="primary" data-finance-filter-apply>
+                  {t('finance.ledger.apply')}
+                </Button>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => {
+                    setPartner('');
+                    setClientId('');
+                    setKind('');
+                    setCode('');
+                    go({});
+                  }}
+                  data-finance-filter-clear
+                >
+                  {t('finance.ledger.clear')}
+                </Button>
+              </div>
+            </form>
+          </div>
+          <FinanceReport
+            report={report}
+            loading={read.block.status === 'loading'}
+            failed={read.block.status === 'failed'}
+            onRetry={read.retry}
+            onToggle={onToggle}
+            onSetDealType={onSetDealType}
+            mine={mine}
           />
-          <form
-            className="grid items-end gap-3 @min-[520px]:grid-cols-2 @min-[1000px]:grid-cols-[repeat(4,minmax(0,1fr))_auto]"
-            data-finance-ledger-filters
-            onSubmit={(e) => {
-              e.preventDefault();
-              go(draft);
-            }}
-          >
-            <label className="flex min-w-0 flex-col gap-1.5 text-sm font-medium text-strong">
-              {t('finance.ledger.partner')}
-              <Select
-                value={partner || ALL}
-                onValueChange={(v) => setPartner(v === ALL ? '' : v)}
-                options={companyOptions}
-                aria-label={t('finance.ledger.partner')}
-                data-finance-filter-company
-              />
-            </label>
-            <label className="flex min-w-0 flex-col gap-1.5 text-sm font-medium text-strong">
-              {t('finance.ledger.clientId')}
-              <Input
-                value={clientId}
-                onChange={(e) => setClientId(e.target.value)}
-                aria-label={t('finance.ledger.clientId')}
-                data-finance-filter-client
-              />
-            </label>
-            <label className="flex min-w-0 flex-col gap-1.5 text-sm font-medium text-strong">
-              {t('finance.ledger.kind')}
-              <Select
-                value={kind || ALL}
-                onValueChange={(v) => setKind(v === ALL ? '' : v)}
-                options={[
-                  { value: ALL, label: t('finance.ledger.allKinds') },
-                  ...LEDGER_KINDS.map((k) => ({ value: k, label: t(`finance.kind.${k}`) })),
-                ]}
-                aria-label={t('finance.ledger.kind')}
-                data-finance-filter-kind
-              />
-            </label>
-            <label className="flex min-w-0 flex-col gap-1.5 text-sm font-medium text-strong">
-              {t('finance.ledger.code')}
-              <Input
-                value={code}
-                onChange={(e) => setCode(e.target.value)}
-                aria-label={t('finance.ledger.code')}
-                data-finance-filter-code
-              />
-            </label>
-            <div className="flex flex-wrap gap-2 @min-[520px]:col-span-2 @min-[1000px]:col-span-1">
-              <Button type="submit" variant="primary" data-finance-filter-apply>
-                {t('finance.ledger.apply')}
-              </Button>
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => {
-                  setPartner('');
-                  setClientId('');
-                  setKind('');
-                  setCode('');
-                  go({});
-                }}
-                data-finance-filter-clear
-              >
-                {t('finance.ledger.clear')}
-              </Button>
-            </div>
-          </form>
-        </div>
-        <FinanceReport
-          report={report}
-          loading={read.block.status === 'loading'}
-          failed={read.block.status === 'failed'}
-          onRetry={read.retry}
-          onToggle={onToggle}
-          onSetDealType={onSetDealType}
-          mine={mine}
-        />
-      </FinanceCard>
-      {/* "Is it counted?" for the same period as the ledger above; it waits its turn like the ledger does */}
-      <CountedTable from={ask.from} to={ask.to} ready={ready} />
-      {/* Landing 47: does Finance agree with itself (A10), what is owed and how old (A6), what is held to tie (A11) —
-          three reads of their own beside the money; each waits its turn like the ledger and asks again on its own */}
-      <FinanceReconciliation from={ask.from} to={ask.to} ready={ready} />
-      <FinanceAgeing ready={ready} />
-      <FinanceHeld from={ask.from} to={ask.to} ready={ready} />
-      {/* the period's achievements, apart from the money (Landing 41): a list with no amount, in no total */}
-      <FinanceAchievements from={ask.from} to={ask.to} ready={ready} />
+        </FinanceCard>
+        {/* "Is it counted?" for the same period as the ledger above; it waits its turn like the ledger does */}
+        <CountedTable from={ask.from} to={ask.to} ready={ready} />
+      </div>
+      {/* Landing 47: what is owed and how old (A6) — the Owed tab (Landing 58) */}
+      <div className={panel('owed')} data-finance-tab-panel="owed">
+        <FinanceAgeing ready={ready} />
+      </div>
+      {/* Landing 47: does Finance agree with itself (A10), what is held to tie (A11) — the Checks tab (Landing 58);
+          each is a read of its own beside the money, waits its turn like the ledger and asks again on its own */}
+      <div className={panel('checks')} data-finance-tab-panel="checks">
+        <FinanceReconciliation from={ask.from} to={ask.to} ready={ready} />
+        <FinanceHeld from={ask.from} to={ask.to} ready={ready} />
+      </div>
+      {/* the period's achievements, apart from the money (Landing 41): a list with no amount, in no total — under
+          Overview, after the months and income by service (Landing 58) */}
+      <div className={panel('overview')} data-finance-tab-panel="achievements">
+        <FinanceAchievements from={ask.from} to={ask.to} ready={ready} />
+      </div>
     </>
   );
 }

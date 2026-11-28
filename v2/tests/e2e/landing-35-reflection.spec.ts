@@ -22,7 +22,7 @@
  */
 import { expect, test, type Page } from '@playwright/test';
 import { ensureAchievementPlan } from './support/achievement-plan';
-import { blocksSettled } from './support/finance-blocks';
+import { blocksSettled, openFinanceTab } from './support/finance-blocks';
 import { oldMonth } from './support/finance-month';
 import { hydrated, num, signedInAdmin, tag, today, type Door } from './support/landing-32';
 import { sql } from './support/stack';
@@ -78,6 +78,8 @@ async function openFinance(page: Page, from: string, to: string, partnerId = '')
   await page.goto(`/finance?period=custom&from=${from}&to=${to}${partnerId ? `&company=${partnerId}` : ''}`);
   await hydrated(page);
   await blocksSettled(page);
+  // Landing 58: the ledger is under its own tab
+  await openFinanceTab(page, 'Ledger');
   await expect(page.locator('[data-finance-report]'), 'the Ledger has answered').toBeVisible({ timeout: 45_000 });
   await expect(page.locator('[data-finance-overview] [data-state="failed"]'), 'no Finance block failed').toHaveCount(0);
 }
@@ -302,6 +304,8 @@ test('2 · an achievement logged for a client is saved with the client, links to
   expect(shows(await tab.innerText()), 'as built: the client’s Finance tab does not show the achievement').toBe(false);
   await expect(page.locator('[data-partner-finance-row]'), 'an achievement is no money row').toHaveCount(0);
   await openFinance(page, `${d.slice(0, 4)}-01-01`, d, org.id);
+  // the achievements are under Overview (Landing 58)
+  await openFinanceTab(page, 'Overview');
   const card = main.locator('[data-finance-achievements]');
   await expect(
     card.locator(`[data-finance-achievement="${number}"]`),

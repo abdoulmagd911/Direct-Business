@@ -10,7 +10,7 @@
 import { mkdirSync } from 'node:fs';
 import { expect, test, type Locator } from '@playwright/test';
 import { readsArabic, withArabicOn } from './support/arabic';
-import { blocksSettled } from './support/finance-blocks';
+import { blocksSettled, openFinanceTab } from './support/finance-blocks';
 import { hydrated, ownMonth, rowNo, seedImported, seedOrg, signedInAdmin, tag } from './support/landing-32';
 import { PHONE, sideways } from './support/landing-34';
 
@@ -79,6 +79,8 @@ test('Arabic: the deal types, the agreement check, the pursue list, the held row
   await page.goto(month.url);
   await hydrated(page);
   await blocksSettled(page);
+  // the ledger is under its own tab (Landing 58)
+  await openFinanceTab(page, 'Ledger');
   await expect(row(paid)).toBeVisible({ timeout: 45_000 });
   const digits = (s: string) => s.replace(/[^\d.,]/g, '');
   const line = page.locator('[data-ledger-deal-line="postpaid"] [data-ledger-deal-revenue]');
@@ -110,7 +112,16 @@ test('Arabic: the deal types, the agreement check, the pursue list, the held row
         'نوع التعامل غير محدد',
       );
       expect(digits(await line.innerText()), `${at}: the same digits as in English, in Western digits`).toBe(english);
-      // the three cards, in Arabic
+      expect(await sideways(page), `${at}: nothing scrolls sideways on the Ledger`).toBeLessThanOrEqual(0);
+      expect(
+        await smallWords(page.locator('[data-finance-ledger-rows]')),
+        `${at}: no word under 12 px in By deal type`,
+      ).toBe(0);
+      await shot(page.locator('[data-finance-ledger-rows]'), `ar-${size.width}-rows`);
+
+      // the three cards, in Arabic — the agreement card and the held card under Checks, the pursue list under Owed
+      // (Landing 58)
+      await openFinanceTab(page, 'Checks');
       const agree = page.locator('[data-finance-reconciliation]');
       await expect(agree.locator('h2'), `${at}: the agreement card is titled in Arabic`).toContainText(
         'هل تتطابق أرقام المالية؟',
@@ -118,14 +129,6 @@ test('Arabic: the deal types, the agreement check, the pursue list, the held row
       await expect(agree.locator('[data-reconcile-verdict]'), `${at}: it agrees, in Arabic`).toContainText('متطابقة', {
         timeout: 45_000,
       });
-      const ageing = page.locator('[data-finance-ageing]');
-      await expect(ageing.locator('h2'), `${at}: the pursue list is titled in Arabic`).toContainText(
-        'المستحقات وأعمارها',
-      );
-      await expect(
-        ageing.locator(`[data-ageing-row][data-number="${pending}"]`),
-        `${at}: the Pending invoice is on it`,
-      ).toBeVisible({ timeout: 45_000 });
       const held = page.locator('[data-finance-held]');
       await expect(held.locator('h2'), `${at}: the held card is titled in Arabic`).toContainText('معلّقة');
       await expect(
@@ -135,18 +138,27 @@ test('Arabic: the deal types, the agreement check, the pursue list, the held row
       await expect(held.locator('[data-held-reason="no_client_id"] h3'), `${at}: its reason in Arabic`).toContainText(
         'بلا رقم عميل',
       );
-      expect(await sideways(page), `${at}: nothing scrolls sideways on the Finance page`).toBeLessThanOrEqual(0);
+      expect(await sideways(page), `${at}: nothing scrolls sideways under Checks`).toBeLessThanOrEqual(0);
       for (const [name, part] of [
-        ['By deal type', page.locator('[data-finance-ledger-rows]')],
         ['the agreement card', agree],
-        ['the pursue list', ageing],
         ['the held card', held],
       ] as const)
         expect(await smallWords(part), `${at}: no word under 12 px in ${name}`).toBe(0);
-      await shot(page.locator('[data-finance-ledger-rows]'), `ar-${size.width}-rows`);
       await shot(agree, `ar-${size.width}-agree`);
-      await shot(ageing, `ar-${size.width}-ageing`);
       await shot(held, `ar-${size.width}-held`);
+
+      await openFinanceTab(page, 'Owed');
+      const ageing = page.locator('[data-finance-ageing]');
+      await expect(ageing.locator('h2'), `${at}: the pursue list is titled in Arabic`).toContainText(
+        'المستحقات وأعمارها',
+      );
+      await expect(
+        ageing.locator(`[data-ageing-row][data-number="${pending}"]`),
+        `${at}: the Pending invoice is on it`,
+      ).toBeVisible({ timeout: 45_000 });
+      expect(await sideways(page), `${at}: nothing scrolls sideways under Owed`).toBeLessThanOrEqual(0);
+      expect(await smallWords(ageing), `${at}: no word under 12 px in the pursue list`).toBe(0);
+      await shot(ageing, `ar-${size.width}-ageing`);
 
       // the organisation's own tab
       await page.goto(`/partners/${org.id}?tab=finance`);

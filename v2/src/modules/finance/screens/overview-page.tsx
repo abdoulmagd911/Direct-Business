@@ -51,6 +51,7 @@ export async function FinanceOverviewPage({ searchParams }: { searchParams: Prom
         mayImport={mayImportFinance(me)}
         ledger={ledger}
         view={one(q.view) ?? ''}
+        tab={one(q.tab)}
       />
     </Page>
   );

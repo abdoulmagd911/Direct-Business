@@ -23,7 +23,7 @@
  * Every value is made up. Sabotage: tests/sabotage/landing-34-e2e.mjs.
  */
 import { expect, test, type Page } from '@playwright/test';
-import { blocksSettled } from './support/finance-blocks';
+import { blocksSettled, openFinanceTab } from './support/finance-blocks';
 import {
   DESKTOP,
   PHONE,
@@ -793,6 +793,8 @@ test('e · Finance loads every block on the first try; one Provisional amount in
     await expect(overview.locator('[data-finance-tiles]'), 'the figures are drawn').toBeVisible();
     await expect(overview.locator('[data-finance-months]'), 'the months are drawn').toBeVisible();
     await expect(overview.locator('[data-finance-service]'), 'Income by service is drawn').toBeVisible();
+    // the ledger is under its own tab (Landing 58)
+    await openFinanceTab(desk, 'Ledger');
     await expect(desk.locator('[data-finance-report]'), 'the ledger is drawn, not left on Loading').toBeVisible({
       timeout: 45_000,
     });
@@ -800,7 +802,9 @@ test('e · Finance loads every block on the first try; one Provisional amount in
       timeout: 45_000,
     });
 
-    // one Provisional amount, the imported row in it: the card, the months' total and the month's row
+    // one Provisional amount, the imported row in it: the card, the months' total and the month's row — the months
+    // are under Overview (Landing 58)
+    await openFinanceTab(desk, 'Overview');
     const amount = async (where: string, what: string) => {
       const el = desk.locator(where);
       await expect(el, `${what} is drawn`).toBeVisible();
@@ -839,7 +843,8 @@ test('e · Finance loads every block on the first try; one Provisional amount in
     expect(leftAmount, 'the Cost card shows the Provisional amount, not a dash').not.toBe('—');
     expect(num(leftAmount), 'the Cost card shows the same Provisional amount').toBe(month.provisional);
 
-    // Income by company: a section with its own address
+    // Income by company: a section with its own address, part of the ledger (under Ledger, Landing 58)
+    await openFinanceTab(desk, 'Ledger');
     const byCompany = desk.locator('[data-finance-by-company]');
     await expect(byCompany, 'the section Income by company is on the page').toBeVisible();
     await expect(byCompany, 'the section is headed Income by company').toContainText('Income by company');
